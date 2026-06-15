@@ -1,16 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateRoomDto, UpdateRoomDto } from './room.dto';
-
-interface Room extends CreateRoomDto {
-  id: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Room } from './room.entity';
+import { RoomStatusService } from './room-status.service';
 
 @Injectable()
 export class RoomService {
   private rooms: Room[] = [];
   private idCounter = 1;
+
+  constructor(private readonly roomStatusService: RoomStatusService) {}
 
   findAll() {
     return this.rooms;
