@@ -1,0 +1,30 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "Node.js & TypeScript Workspace",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+	
+	"features": {
+		"ghcr.io/devcontainers-extra/features/mysql-homebrew:1": {}
+	},
+
+	// Mở các cổng mạng phục vụ NestJS Backend (3000) và React Frontend (5173)
+	"forwardPorts": [3000, 5173],
+
+	// Tự động chạy npm install cho cả frontend và backend sau khi khởi tạo container
+	"postCreateCommand": "cd server && npm install && cd ../frontend && npm install",
+
+	// Cài đặt các extension hỗ trợ phát triển dự án
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-mysql"
+			]
+		}
+	},
+
+	"remoteUser": "node"
+}
