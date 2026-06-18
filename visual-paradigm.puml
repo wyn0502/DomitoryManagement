@@ -1,0 +1,446 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+package "Modules" {
+  class AppModule {
+    +imports: AssetsModule[]
+    +imports: TicketsModule[]
+    +imports: AnnouncementsModule[]
+    +controllers: AppController[]
+    +controllers: UiController[]
+    +providers: AppService[]
+  }
+
+  class AssetsModule {
+    +controllers: AssetsController[]
+    +providers: AssetsService[]
+  }
+
+  class TicketsModule {
+    +controllers: TicketsController[]
+    +providers: TicketsService[]
+  }
+
+  class AnnouncementsModule {
+    +controllers: AnnouncementsController[]
+    +providers: AnnouncementsService[]
+  }
+}
+
+package "Controllers" {
+  class AppController {
+    +getHello(): string
+  }
+
+  class UiController {
+    +getIndex(): string
+    +getStudentPage(): string
+    +getAdminPage(): string
+  }
+
+  class AssetsController {
+    +listAssetTypes()
+    +getAssetType(id)
+    +createAssetType(body)
+    +updateAssetType(id, body)
+    +deleteAssetType(id)
+    +listRoomAssets(roomNumber)
+    +getRoomAssets(roomNumber)
+    +assignAsset(body)
+    +updateRoomAsset(id, body)
+    +deleteRoomAsset(id)
+  }
+
+  class TicketsController {
+    +createTicket(body)
+    +listTickets(status)
+    +listStudentTickets(studentId)
+    +updateTicketStatus(id, body)
+  }
+
+  class AnnouncementsController {
+    +listAnnouncements()
+    +createAnnouncement(body)
+  }
+}
+
+package "Services" {
+  class AppService {
+    +getHello(): string
+  }
+
+  class AssetsService {
+    +createAssetType(name, description)
+    +listAssetTypes()
+    +getAssetTypeById(id)
+    +updateAssetType(id, name, description)
+    +removeAssetType(id)
+    +listRoomAssets()
+    +getRoomAssetById(id)
+    +assignAssetToRoom(roomNumber, assetTypeId, quantity, condition)
+    +listRoomAssetsForRoom(roomNumber)
+    +updateRoomAsset(id, quantity, condition)
+    +removeRoomAsset(id)
+  }
+
+  class TicketsService {
+    +createTicket(studentId, roomNumber, description, priority, imageUrl)
+    +listTickets(status)
+    +listTicketsForStudent(studentId)
+    +getTicketById(id)
+    +updateTicketStatus(id, status)
+  }
+
+  class AnnouncementsService {
+    +createAnnouncement(title, content)
+    +listAnnouncements()
+  }
+}
+
+package "Models" {
+  class AssetType {
+    +id: number
+    +name: string
+    +description?: string
+  }
+
+  class RoomAsset {
+    +id: number
+    +roomNumber: string
+    +assetTypeId: number
+    +quantity: number
+    +condition: AssetCondition
+  }
+
+  class Ticket {
+    +id: number
+    +studentId: string
+    +roomNumber: string
+    +description: string
+    +priority: TicketPriority
+    +status: TicketStatus
+    +imageUrl?: string
+    +createdAt: string
+    +updatedAt: string
+  }
+
+  class Announcement {
+    +id: number
+    +title: string
+    +content: string
+    +postedAt: string
+  }
+}
+
+AppModule --> AssetsModule
+AppModule --> TicketsModule
+AppModule --> AnnouncementsModule
+AppModule --> AppController
+AppModule --> UiController
+AppModule --> AppService
+AssetsModule --> AssetsController
+AssetsModule --> AssetsService
+TicketsModule --> TicketsController
+TicketsModule --> TicketsService
+AnnouncementsModule --> AnnouncementsController
+AnnouncementsModule --> AnnouncementsService
+AssetsController --> AssetsService
+TicketsController --> TicketsService
+AnnouncementsController --> AnnouncementsService
+
+AssetsService --> AssetType
+AssetsService --> RoomAsset
+TicketsService --> Ticket
+AnnouncementsService --> Announcement
+
+@enduml
+
+' ============================================================
+' ACTIVITY DIAGRAMS - CRUD OPERATIONS
+' ============================================================
+
+@startuml CRUD_Create_Ticket
+title Create Ticket - Activity Diagram
+
+start
+:Student sends request\nwith description, priority, image;
+:Validate input data\n(description, roomNumber, studentId);
+if (Data valid?) then (yes)
+  :Check if Student exists;
+  if (Student exists?) then (yes)
+    :Process image upload\nif provided;
+    if (Image format valid?) then (yes)
+      :Save image to /uploads/tickets/;
+      :Create Ticket in database\nstatus=Pending;
+      :Return Ticket data with\nimage URL;
+      :Send success response (201);
+    else (no)
+      :Reject image\nInvalid format;
+      :Send error response (400);
+    endif
+  else (no)
+    :Send error: Student not found (404);
+  endif
+else (no)
+  :Send validation error (400);
+endif
+stop
+
+@enduml
+
+@startuml CRUD_Read_Ticket
+title Read Ticket - Activity Diagram
+
+start
+:Client sends GET request\nwith optional filter;
+if (Filter by Status?) then (yes)
+  :Query tickets WHERE status=filter;
+else (no)
+  :Query all tickets;
+endif
+:Include Student information\nin response;
+if (Tickets found?) then (yes)
+  :Sort by createdAt DESC;
+  :Format response with\nticket details;
+  :Send response (200);
+else (no)
+  :Send empty array (200);
+endif
+stop
+
+@enduml
+
+@startuml CRUD_Update_Ticket
+title Update Ticket Status - Activity Diagram
+
+start
+:Admin sends PUT request\nwith new status and adminId;
+:Verify adminId is valid\nAdmin role;
+if (Is Admin?) then (yes)
+  :Get Ticket by ID;
+  if (Ticket exists?) then (yes)
+    :Validate new status\n(Pending/In Progress/Completed);
+    if (Status valid?) then (yes)
+      :Update Ticket\nstatus=new_status;
+      :Update timestamp;
+      :Return updated Ticket (200);
+    else (no)
+      :Send error: Invalid status (400);
+    endif
+  else (no)
+    :Send error: Ticket not found (404);
+  endif
+else (no)
+  :Send error: Forbidden - Not Admin (403);
+endif
+stop
+
+@enduml
+
+@startuml CRUD_Delete_Ticket
+title Delete Ticket - Activity Diagram
+
+start
+:Admin sends DELETE request\nwith ticketId;
+:Verify adminId is valid\nAdmin role;
+if (Is Admin?) then (yes)
+  :Get Ticket by ID;
+  if (Ticket exists?) then (yes)
+    :Delete associated image file\n(if exists);
+    :Delete Ticket from database;
+    :Send success response (200);
+  else (no)
+    :Send error: Ticket not found (404);
+  endif
+else (no)
+  :Send error: Forbidden - Not Admin (403);
+endif
+stop
+
+@enduml
+
+@startuml CRUD_Asset_Type
+title Asset Type CRUD - Activity Diagram
+
+start
+fork
+  partition "CREATE" {
+    :Admin creates Asset Type;
+    :Validate name (unique);
+    if (Name already exists?) then (yes)
+      :Send error (400);
+    else (no)
+      :Insert into database;
+      :Return AssetType (201);
+    endif
+  }
+fork again
+  partition "READ" {
+    :Get all Asset Types\nor Get by ID;
+    :Query database;
+    :Return AssetType(s) (200);
+  }
+fork again
+  partition "UPDATE" {
+    :Admin updates Asset Type;
+    :Validate new name (unique);
+    if (Conflict?) then (yes)
+      :Send error (400);
+    else (no)
+      :Update in database;
+      :Return updated AssetType (200);
+    endif
+  }
+fork again
+  partition "DELETE" {
+    :Admin deletes Asset Type;
+    :Check if used in RoomAssets;
+    if (In use?) then (yes)
+      :Cascade delete RoomAssets;
+    endif
+    :Delete from database;
+    :Return success (200);
+  }
+end fork
+stop
+
+@enduml
+
+@startuml CRUD_RoomAsset
+title Room Asset (Allocation) CRUD - Activity Diagram
+
+start
+:Admin manages Room Assets;
+partition "ASSIGN/CREATE" {
+  :Select room and asset type;
+  :Validate roomNumber, assetTypeId, quantity;
+  :Check if AssetType exists;
+  :Check if RoomAsset already exists\n(roomNumber + assetTypeId);
+  if (Exists?) then (yes)
+    :Update quantity and condition;
+  else (no)
+    :Create new RoomAsset;
+  endif
+  :Save to database;
+}
+partition "READ" {
+  :Query RoomAssets\n(with optional roomNumber filter);
+  :Include AssetType details;
+  :Return list (200);
+}
+partition "UPDATE" {
+  :Modify quantity or condition;
+  :Validate values;
+  :Update in database;
+  :Return updated (200);
+}
+partition "DELETE" {
+  :Remove asset from room;
+  :Delete from database;
+  :Return success (200);
+}
+stop
+
+@enduml
+
+@startuml CRUD_Announcement
+title Announcement CRUD - Activity Diagram
+
+start
+partition "CREATE (Admin)" {
+  :Admin enters title and content;
+  :Validate inputs (not empty);
+  if (Valid?) then (yes)
+    :Verify admin role;
+    if (Is Admin?) then (yes)
+      :Insert into database\nadminId + timestamp;
+      :Return Announcement (201);
+    else (no)
+      :Send error: Forbidden (403);
+    endif
+  else (no)
+    :Send error: Invalid input (400);
+  endif
+}
+partition "READ (Public)" {
+  :Student requests announcements;
+  :Get all from database;
+  :Apply pagination (optional);
+  :Sort by createdAt DESC;
+  :Return list (200);
+}
+partition "UPDATE (Admin)" {
+  :Admin updates title/content;
+  :Verify admin role;
+  if (Is Admin?) then (yes)
+    :Update in database;
+    :Return updated (200);
+  else (no)
+    :Send error: Forbidden (403);
+  endif
+}
+partition "DELETE (Admin)" {
+  :Admin deletes announcement;
+  :Verify admin role;
+  if (Is Admin?) then (yes)
+    :Delete from database;
+    :Return success (200);
+  else (no)
+    :Send error: Forbidden (403);
+  endif
+}
+stop
+
+@enduml
+
+@startuml CRUD_User_Auth
+title User Authentication CRUD - Activity Diagram
+
+start
+partition "CREATE (Register)" {
+  :User sends username, password, email, role;
+  :Validate input (length, format);
+  :Check username unique;
+  if (Exists?) then (yes)
+    :Send error (400);
+  else (no)
+    :Hash password with bcrypt;
+    :Create User in database;
+    :Return User data (201);
+  endif
+}
+partition "READ (Login)" {
+  :User sends username, password;
+  :Find User by username;
+  if (Found?) then (yes)
+    :Compare password with hash;
+    if (Match?) then (yes)
+      :Return User info (200);
+    else (no)
+      :Send error: Invalid credentials (401);
+    endif
+  else (no)
+    :Send error: User not found (401);
+  endif
+}
+partition "READ (Get Profile)" {
+  :Get User by ID;
+  if (Found?) then (yes)
+    :Return User data without password (200);
+  else (no)
+    :Send error: Not found (404);
+  endif
+}
+partition "UPDATE (Change Role)" {
+  :Admin changes user role;
+  :Verify admin role;
+  if (Is Admin?) then (yes)
+    :Update user role in database;
+    :Return updated User (200);
+  else (no)
+    :Send error: Forbidden (403);
+  endif
+}
+stop
+
+@enduml

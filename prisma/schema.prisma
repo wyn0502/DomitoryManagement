@@ -1,0 +1,62 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  username      String         @unique
+  password      String
+  email         String?        @unique
+  role          String         @default("student") // "admin" or "student"
+  tickets       Ticket[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model AssetType {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  roomAssets  RoomAsset[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model RoomAsset {
+  id          String    @id @default(uuid())
+  roomNumber  String
+  assetTypeId String
+  assetType   AssetType @relation(fields: [assetTypeId], references: [id], onDelete: Cascade)
+  quantity    Int       @default(1)
+  condition   String    @default("New") // "New", "Old", "Broken"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([roomNumber, assetTypeId])
+}
+
+model Ticket {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  roomNumber  String
+  description String
+  priority    String   @default("Medium") // "Low", "Medium", "High", "Urgent"
+  status      String   @default("Pending") // "Pending", "In Progress", "Completed", "Cancelled"
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  adminId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

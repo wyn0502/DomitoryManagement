@@ -1,98 +1,309 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Dormitory Management System API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A comprehensive RESTful API backend for managing dormitory operations including assets, maintenance tickets, announcements, and user authentication.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+### 🏠 Asset Management (Assets)
+- **CRUD Operations** for asset types (Air Conditioner, Fan, Refrigerator, etc.)
+- **Asset Allocation** to specific rooms with status tracking (New/Old/Broken)
+- **Room-based Queries** to view all equipment in a specific room
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### 🔧 Ticket/Maintenance System
+- **Create Tickets** with description, priority level, and optional image attachments
+- **Image Upload** support (JPEG, PNG, GIF, WebP - max 10MB)
+- **Status Management** - track ticket progress (Pending → In Progress → Completed)
+- **Admin Controls** - only admins can update ticket status
+- **Search & Filter** - find tickets by status, priority, or keywords
+- **Statistics Dashboard** - view ticket metrics
 
-## Project setup
+### 📢 Announcements
+- **Admin-Only Posts** - create, update, delete announcements
+- **Student Access** - view all announcements with pagination
+- **Search Feature** - find announcements by title or content
+- **Latest Feed** - retrieve most recent announcements
 
+### 👥 User & Authentication
+- **User Registration** with role-based access (admin/student)
+- **Secure Login** with bcrypt password hashing
+- **Role Management** - admins can assign/change user roles
+- **User Directory** - view all users filtered by role
+
+---
+
+## Technology Stack
+
+- **Framework**: NestJS (Node.js + Express)
+- **Database**: Prisma ORM with SQLite
+- **Authentication**: JWT-ready, bcrypt password hashing
+- **File Upload**: Multer for multipart/form-data
+- **Validation**: NestJS built-in validation
+- **API Style**: RESTful with proper HTTP methods
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js v18+
+- npm or yarn
+
+### Installation
+
+1. **Clone and Install Dependencies**
+   ```bash
+   cd /workspaces/DomitoryManagement
+   npm install
+   ```
+
+2. **Setup Database**
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev --name init
+   ```
+
+3. **Create Upload Directory**
+   ```bash
+   mkdir -p uploads/tickets
+   ```
+
+4. **Start Development Server**
+   ```bash
+   npm run start:dev
+   ```
+
+   Server runs on: `http://localhost:3000`
+
+---
+
+## API Overview
+
+### Authentication (`/auth`)
+- `POST /auth/register` - Create new user
+- `POST /auth/login` - Login user
+- `GET /auth/users/:id` - Get user profile
+- `GET /auth/all-users` - List users (filter by role)
+- `POST /auth/users/:userId/role` - Change user role (Admin)
+
+### Assets (`/assets`)
+- `POST /assets/types` - Create asset type
+- `GET /assets/types` - List all asset types
+- `GET /assets/room-assets` - List room assets (with optional filter)
+- `POST /assets/room-assets` - Assign asset to room
+- `GET /assets/rooms/:roomNumber` - View equipment in specific room
+- `PUT /assets/room-assets/:id` - Update asset status
+- `DELETE /assets/room-assets/:id` - Remove asset
+
+### Tickets (`/tickets`)
+- `POST /tickets` - Create new ticket with optional image
+- `GET /tickets` - List all tickets (filter by status)
+- `GET /tickets/:id` - Get ticket details
+- `GET /tickets/student/:studentId` - List student's tickets
+- `PUT /tickets/:id/status` - Update ticket status (Admin)
+- `GET /tickets/stats/overview` - Get ticket statistics
+- `GET /tickets/search/query?q=keyword` - Search tickets
+
+### Announcements (`/announcements`)
+- `POST /announcements` - Create announcement (Admin)
+- `GET /announcements` - List all announcements
+- `GET /announcements/paginated` - Paginated announcements
+- `GET /announcements/:id` - Get announcement details
+- `GET /announcements/latest` - Get latest announcements
+- `PUT /announcements/:id` - Update announcement (Admin)
+- `DELETE /announcements/:id` - Delete announcement (Admin)
+
+---
+
+## Authorization & Permissions
+
+### Public Access
+- View announcements
+- View room assets
+- Get user profiles
+
+### Student Access
+- Create own tickets
+- View own ticket history
+
+### Admin Only
+- Update/delete asset types
+- Manage room asset allocation
+- Update ticket status
+- Create/edit/delete announcements
+- Change user roles
+
+---
+
+## File Upload
+
+**Endpoint**: `POST /tickets`  
+**Method**: multipart/form-data
+
+**Supported Formats**:
+- JPEG, PNG, GIF, WebP
+
+**Size Limit**: 10MB
+
+**Response**: Image URL `/uploads/tickets/[timestamp]-[filename]`
+
+---
+
+## Example Usage
+
+### Register Admin
 ```bash
-$ npm install
+curl -X POST http://localhost:3000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin01",
+    "password": "admin@123",
+    "role": "admin"
+  }'
 ```
 
-## Compile and run the project
-
+### Create Asset Type
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -X POST http://localhost:3000/assets/types \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Air Conditioner",
+    "description": "Split AC unit"
+  }'
 ```
 
-## Run tests
-
+### Assign Asset to Room
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+curl -X POST http://localhost:3000/assets/room-assets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roomNumber": "101",
+    "assetTypeId": "asset-id-here",
+    "quantity": 1,
+    "condition": "New"
+  }'
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### Create Ticket with Image
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+curl -X POST http://localhost:3000/tickets \
+  -F "studentId=student-id" \
+  -F "roomNumber=101" \
+  -F "description=AC not cooling" \
+  -F "priority=High" \
+  -F "image=@/path/to/image.jpg"
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Post Announcement
+```bash
+curl -X POST http://localhost:3000/announcements \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Maintenance Alert",
+    "content": "Water shutoff on Jan 5, 2024",
+    "adminId": "admin-id-here"
+  }'
+```
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## Project Structure
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```
+src/
+├── auth/              # User authentication and management
+├── assets/            # Asset inventory management
+├── tickets/           # Support ticket system
+├── announcements/     # Announcement management
+├── app.module.ts      # Root module
+├── app.controller.ts  # Root controller
+└── main.ts            # Application entry point
 
-## Support
+prisma/
+├── schema.prisma      # Database schema
+└── migrations/        # Database migrations
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+uploads/
+└── tickets/           # Uploaded ticket images
+```
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Documentation
+
+- **Detailed API Reference**: See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **Setup Instructions**: See [SETUP.md](./SETUP.md)
+
+---
+
+## Development Commands
+
+```bash
+# Start development server with auto-reload
+npm run start:dev
+
+# Build for production
+npm run build
+
+# Run production build
+npm run start:prod
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Run tests
+npm test
+npm run test:watch
+npm run test:cov
+```
+
+---
+
+## Error Handling
+
+All errors return structured JSON responses:
+
+```json
+{
+  "statusCode": 400,
+  "message": "Error description",
+  "error": "Bad Request"
+}
+```
+
+Common status codes:
+- `200` - Success
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden (permission denied)
+- `404` - Not Found
+- `500` - Server Error
+
+---
+
+## Future Enhancements
+
+- [ ] JWT Token-based authentication
+- [ ] Email notifications for ticket updates
+- [ ] Real-time notifications with WebSockets
+- [ ] Advanced analytics and reporting
+- [ ] Mobile app integration
+- [ ] Payment integration for damages
+- [ ] Room booking system
+- [ ] Visitor management
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED - Proprietary
+
+---
+
+## Support
+
+For detailed API documentation, please refer to [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+
+For setup and troubleshooting, see [SETUP.md](./SETUP.md)
