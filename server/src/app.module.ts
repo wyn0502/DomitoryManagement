@@ -18,11 +18,11 @@ import { DashboardModule } from './dashboard/dashboard.module';
       envFilePath: join(__dirname, '..', '.env'), // Nạp .env ở thư mục server/
     }),
 
-    // 2. Phục vụ tài liệu tĩnh (Giao diện HTML/CSS/JS) từ thư mục public/ nếu có
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api/(.*)'],
-    }),
+    // 2. Phục vụ tài liệu tĩnh (Giao diện HTML/CSS/JS) từ thư mục public/ nếu có (Tạm tắt do không dùng và tránh lỗi trùng ký tự * trên Express 5)
+    // ServeStaticModule.forRoot({
+    //   rootPath: join(__dirname, '..', 'public'),
+    //   exclude: ['/api/(.*)'],
+    // }),
 
     // 3. Sử dụng Custom DatabaseModule cung cấp DATA_SOURCE TypeORM tự định nghĩa
     DatabaseModule,

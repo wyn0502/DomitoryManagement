@@ -13,7 +13,8 @@ export class AuthService {
   ) {}
 
   async register(registerDto: any): Promise<any> {
-    const { username, password, email, role, room_id, full_name, mssv, hometown, phone, class_name } = registerDto;
+    const { username, password, role, room_id, full_name, mssv, hometown, phone, class_name } = registerDto;
+    const email = registerDto.email || `${username}@ktx.com`;
     
     // Kiểm tra trùng lặp
     const existingUser = await this.userRepository.findOne({

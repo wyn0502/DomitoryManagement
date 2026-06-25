@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed_password'),
+  compare: jest.fn(),
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -26,7 +29,7 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
-          provide: getRepositoryToken(User),
+          provide: 'USER_REPOSITORY',
           useValue: userRepositoryMock,
         },
         {
@@ -86,7 +89,7 @@ describe('AuthService', () => {
       const dbUser = { username: 'testuser', password: 'hashed_password' };
       userRepositoryMock.findOne.mockResolvedValue(dbUser);
       
-      jest.spyOn(bcrypt, 'compare').mockImplementation(() => Promise.resolve(false));
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(
         service.login({ username: 'testuser', password: 'wrong_password' }),
@@ -97,7 +100,7 @@ describe('AuthService', () => {
       const dbUser = { id: 1, username: 'testuser', password: 'hashed_password', email: 'test@example.com', role: 'student', room_id: null, room: null };
       userRepositoryMock.findOne.mockResolvedValue(dbUser);
       
-      jest.spyOn(bcrypt, 'compare').mockImplementation(() => Promise.resolve(true));
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       jwtServiceMock.signAsync.mockResolvedValue('mocked_jwt_token');
 
       const result = await service.login({ username: 'testuser', password: 'correct_password' });

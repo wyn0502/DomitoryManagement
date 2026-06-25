@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InvoicesService } from './invoices.service';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Invoice } from './entities/invoice.entity';
-import { UtilityMeter } from './entities/utility-meter.entity';
-import { Room } from '../rooms/entities/room.entity';
 import { ConfigService } from '@nestjs/config';
 
 describe('InvoicesService Billing Calculation', () => {
@@ -14,15 +10,15 @@ describe('InvoicesService Billing Calculation', () => {
       providers: [
         InvoicesService,
         {
-          provide: getRepositoryToken(Invoice),
+          provide: 'INVOICE_REPOSITORY',
           useValue: {},
         },
         {
-          provide: getRepositoryToken(UtilityMeter),
+          provide: 'UTILITY_METER_REPOSITORY',
           useValue: {},
         },
         {
-          provide: getRepositoryToken(Room),
+          provide: 'ROOM_REPOSITORY',
           useValue: {},
         },
         {

@@ -40,7 +40,7 @@ export const databaseProviders = [
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_DATABASE || 'quan_ly_ktx',
         entities: [User, Room, Invoice, UtilityMeter],
-        synchronize: true, // Chỉ dùng cho phát triển (dev)
+        synchronize: process.env.DB_SYNCHRONIZE === 'true', // Tắt đồng bộ tự động nếu đã import file SQL
         ssl: sslConfig,
       });
 

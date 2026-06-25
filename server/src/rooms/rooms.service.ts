@@ -21,7 +21,7 @@ export class RoomsService {
     return room;
   }
 
-  async create(roomDto: any): Promise<Room> {
+  async create(roomDto: Partial<Room>): Promise<Room> {
     const room = this.roomRepository.create(roomDto);
     return this.roomRepository.save(room);
   }
