@@ -1,29 +1,30 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
 {
-	"name": "Node.js & TypeScript",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/typescript-node:4-24-trixie",
+	"name": "Node.js & TypeScript Workspace",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+	
 	"features": {
 		"ghcr.io/devcontainers-extra/features/mysql-homebrew:1": {}
 	},
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	// Mở các cổng mạng phục vụ NestJS Backend (3000) và React Frontend (5173)
+	"forwardPorts": [3000, 5173],
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// Tự động chạy npm install cho cả frontend và backend sau khi khởi tạo container
+	"postCreateCommand": "cd server && npm install && cd ../frontend && npm install",
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
-
-	// Configure tool-specific properties.
-	 "customizations": {
+	// Cài đặt các extension hỗ trợ phát triển dự án
+	"customizations": {
 		"vscode": {
-			"extensions": ["GitHub.copilot"]
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-mysql"
+			]
 		}
-	 }
+	},
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "node"
 }
