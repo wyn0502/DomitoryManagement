@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Delete, Param, UseGuards } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -23,5 +23,15 @@ export class RoomsController {
   @Post()
   async create(@Body() roomDto: any) {
     return this.roomsService.create(roomDto);
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: number, @Body() roomDto: any) {
+    return this.roomsService.update(id, roomDto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: number) {
+    return this.roomsService.remove(id);
   }
 }
