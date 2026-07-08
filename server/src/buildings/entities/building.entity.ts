@@ -1,8 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { Room } from 'src/rooms/entities/room.entity';
-import { roomsProviders } from 'src/rooms/rooms.providers';
 
-@Entity ('buildings')
+@Entity('buildings')
 export class Building {
     @PrimaryGeneratedColumn()
     id: number;
@@ -10,7 +16,7 @@ export class Building {
     @Column({unique: true})
     name: string;
 
-    @Column({type : 'varchar', default: true})
+    @Column({type : 'varchar', nullable: true})
     description: string | null;
 
     @OneToMany(() => Room, (room) => room.building)

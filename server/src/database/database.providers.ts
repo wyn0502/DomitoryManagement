@@ -4,7 +4,9 @@ import * as path from 'path';
 
 // Import all entities
 import { User } from '../auth/entities/user.entity';
+import { Building } from '../buildings/entities/building.entity';
 import { Room } from '../rooms/entities/room.entity';
+import { Contract } from '../contracts/entities/contract.entity';
 import { Invoice } from '../invoices/entities/invoice.entity';
 import { UtilityMeter } from '../invoices/entities/utility-meter.entity';
 
@@ -39,7 +41,7 @@ export const databaseProviders = [
         username: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_DATABASE || 'quan_ly_ktx',
-        entities: [User, Room, Invoice, UtilityMeter],
+        entities: [User, Building, Room, Contract, Invoice, UtilityMeter],
         synchronize: process.env.DB_SYNCHRONIZE === 'true', // Tắt đồng bộ tự động nếu đã import file SQL
         ssl: sslConfig,
       });
