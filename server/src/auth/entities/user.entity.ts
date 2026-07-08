@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Room } from '../../rooms/entities/room.entity';
+import { on } from 'events';
+import { Contract } from 'src/contracts/entities/contract.entity';
 
 @Entity('users')
 export class User {
@@ -59,4 +61,7 @@ export class User {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @OneToMany(() => Contract, (contract) => contract.user)
+  contracts: Contract[];
 }

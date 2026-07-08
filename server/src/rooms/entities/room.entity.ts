@@ -1,12 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 import { Invoice } from '../../invoices/entities/invoice.entity';
 import { UtilityMeter } from '../../invoices/entities/utility-meter.entity';
+import { Building } from '../../buildings/entities/building.entity';
+import { Contract } from 'src/contracts/entities/contract.entity';
 
 @Entity('rooms')
 export class Room {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne(() => Building, (building) => building.rooms)
+  building: Building;
+
+  @Column()
+  building_id: number;
 
   @Column({ unique: true })
   room_name: string;
@@ -37,4 +45,7 @@ export class Room {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @OneToMany(() => Contract, (contract) => contract.room)
+  contracts: Contract[];
 }

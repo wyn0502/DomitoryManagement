@@ -1,0 +1,24 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Room } from 'src/rooms/entities/room.entity';
+import { roomsProviders } from 'src/rooms/rooms.providers';
+
+@Entity ('buildings')
+export class Building {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column({unique: true})
+    name: string;
+
+    @Column({type : 'varchar', default: true})
+    description: string | null;
+
+    @OneToMany(() => Room, (room) => room.building)
+    rooms: Room[];
+
+    @CreateDateColumn()
+    created_at: Date;
+
+    @UpdateDateColumn()
+    updated_at: Date;
+}

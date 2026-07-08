@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
-
 import { User } from '../auth/entities/user.entity';
 
 @Injectable()
@@ -37,12 +36,33 @@ export class RoomsService {
     return this.stripStudentPasswords(room);
   }
 
+  // Bổ sung current-occupancy
+  async increaseCurrentOccupancy(roomId: number): Promise<Room> {
+    const room = await this.findOne(roomId);
+    if (room.current_occupancy < room.capacity) {
+      room.current_occupancy += 1;
+      return this.roomRepository.save(room);
+    } else {
+      throw new Error(`Phòng ${room.room_name} đã đầy`);
+    }
+  }
+
+  async decreaseCurrentOccupancy(roomId: number): Promise<Room> {
+    const room = await this.findOne(roomId);
+    if (room.current_occupancy > 0) {
+      room.current_occupancy -= 1;
+      return this.roomRepository.save(room);
+    } else {
+      throw new Error(`Phòng ${room.room_name} đã trống`);
+    }
+  }
+
   async create(roomDto: Partial<Room>): Promise<Room> {
     const room = this.roomRepository.create(roomDto);
     return this.roomRepository.save(room);
   }
 
-  // UPDATE: cập nhật thông tin phòng
+  // UPDATE: cập nhật thông tin phòng (có kiểm tra ràng buộc sức chứa)
   async update(id: number, roomDto: Partial<Room>): Promise<Room> {
     const room = await this.roomRepository.findOne({ where: { id } });
     if (!room) {
