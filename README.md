@@ -113,5 +113,22 @@ Các file test chính:
 
 ---
 
+⚖️ Luật, Đạo đức & Bảo mật (Legal, Ethics & Security)
+Dự án này được xây dựng dựa trên sự tuân thủ nghiêm túc các tiêu chuẩn pháp lý và đạo đức nghề nghiệp:
+
+Tuân thủ Pháp luật:
+
+Tuân thủ Luật Sở hữu trí tuệ: Toàn bộ thư viện sử dụng đều tuân thủ giấy phép nguồn mở.
+Tuân thủ Luật An ninh mạng & Nghị định 13/2023/NĐ-CP: Mọi thông tin người dùng (nếu có) đều được mã hóa bằng [Tên thuật toán, ví dụ: SHA-256/bcrypt] và bảo mật đường truyền.
+Đạo đức Xã hội:
+
+Hệ thống hướng tới sự minh bạch, không chứa mã độc hoặc các tính năng gây tổn hại đến lợi ích chung của cộng đồng.
+Đạo đức Nghề nghiệp & Phối hợp Nhóm:
+
+Cam kết không đạo văn, ghi rõ đóng góp của từng thành viên trong lịch sử Commit.
+Áp dụng nguyên tắc bảo mật thông tin nội bộ: Không push các thông tin nhạy cảm (Private Key, API Credentials) lên mã nguồn công khai.
+
+---
+
 ## 📊 Sơ Đồ Hoạt Động (CRUD Hóa đơn & PayOS)
 Chi tiết sơ đồ trình tự Sequence Diagram và sơ đồ hoạt động (Activity Diagram) của SV1 Quỳnh đã được lưu trữ và vẽ bằng công cụ Mermaid tại file [activity_diagram.md](file:///C:/Users/SV/.gemini/antigravity-ide/scratch/DomitoryManagement/activity_diagram.md).
