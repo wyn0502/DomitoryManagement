@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BuildingsModule } from './buildings/buildings.module';
 import { UsersModule } from './users/users.module';
 import { AssetsModule } from './assets/assets.module';
 import { TicketsModule } from './tickets/tickets.module';
@@ -31,12 +32,13 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     // 3. Sử dụng Custom DatabaseModule cung cấp DATA_SOURCE TypeORM tự định nghĩa
     DatabaseModule,
 
-    // 4. Các module nghiệp vụ của hệ thống
+    // 4. Các module nghiệp vụ của hệ thống (Gộp đầy đủ toàn bộ Modules)
     AuthModule,
     RoomsModule,
     InvoicesModule,
     DashboardModule,
     UsersModule,
+    BuildingsModule,
     AssetsModule,
     TicketsModule,
     AnnouncementsModule,
