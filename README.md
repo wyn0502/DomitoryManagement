@@ -113,7 +113,7 @@ Các file test chính:
 
 ---
 
-⚖️ Luật, Đạo đức & Bảo mật (Legal, Ethics & Security)
+## ⚖️ Luật, Đạo đức & Bảo mật (Legal, Ethics & Security)
 Dự án này được xây dựng dựa trên sự tuân thủ nghiêm túc các tiêu chuẩn pháp lý và đạo đức nghề nghiệp:
 
 Tuân thủ Pháp luật:
