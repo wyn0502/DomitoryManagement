@@ -12,7 +12,7 @@
 	"forwardPorts": [3000, 5173],
 
 	// Tự động chạy npm install cho cả frontend và backend sau khi khởi tạo container
-	"postCreateCommand": "cd server && npm install && cd ../frontend && npm install",
+	"postCreateCommand": "cd server && npm install && cd ../client && npm install",
 
 	// Cài đặt các extension hỗ trợ phát triển dự án
 	"customizations": {
