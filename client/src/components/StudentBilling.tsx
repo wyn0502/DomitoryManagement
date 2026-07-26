@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ExclamationTriangleFill, HourglassSplit, FileEarmarkTextFill,
+  CheckLg, XLg, CreditCard2Front, CheckCircleFill, ArrowRepeat,
+} from 'react-bootstrap-icons';
 
 interface User {
   id: number;
@@ -138,7 +142,7 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
   };
 
   if (loading && invoices.length === 0) {
-    return <div style={{ padding: '4rem', textAlign: 'center' }}><h2>🚀 Đang tải hóa đơn của phòng...</h2></div>;
+    return <div style={{ padding: '4rem', textAlign: 'center' }}><h2 className="d-flex align-items-center justify-content-center gap-2"><ArrowRepeat size={28} /> Đang tải hóa đơn của phòng...</h2></div>;
   }
 
   return (
@@ -152,8 +156,8 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
         </p>
       </div>
 
-      {error && <div className="alert alert-danger">⚠️ {error}</div>}
-      {success && <div className="alert alert-success">⏳ {success}</div>}
+      {error && <div className="alert alert-danger"><ExclamationTriangleFill /> {error}</div>}
+      {success && <div className="alert alert-success"><HourglassSplit /> {success}</div>}
 
       {/* 2. Payment Redirect Return Message Banner */}
       {paymentResult && (
@@ -166,7 +170,7 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
               color: paymentResult.success ? 'var(--success)' : 'var(--danger)'
             }}
           >
-            {paymentResult.success ? '✓' : '✗'}
+            {paymentResult.success ? <CheckLg size={40} /> : <XLg size={36} />}
           </div>
           
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>
@@ -204,7 +208,7 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
 
       {/* 3. Room Invoices Table */}
       <div className="glass-panel">
-        <h2 className="section-title">📄 Danh Sách Hóa Đơn Điện Nước & Phòng</h2>
+        <h2 className="section-title"><FileEarmarkTextFill className="text-primary" /> Danh Sách Hóa Đơn Điện Nước & Phòng</h2>
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -259,22 +263,22 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         {isPaid ? (
-                          <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                            ✓ Đã hoàn tất
+                          <span className="d-inline-flex align-items-center gap-1" style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            <CheckCircleFill /> Đã hoàn tất
                           </span>
                         ) : (
                           <button
                             onClick={() => handlePay(inv.id)}
-                            className="btn btn-primary"
-                            style={{ 
-                              padding: '0.4rem 0.8rem', 
-                              fontSize: '0.8rem', 
+                            className="btn btn-primary d-inline-flex align-items-center gap-1"
+                            style={{
+                              padding: '0.4rem 0.8rem',
+                              fontSize: '0.8rem',
                               width: 'auto',
                               boxShadow: 'none'
                             }}
                             disabled={payLoading}
                           >
-                            💳 Quét mã VietQR
+                            <CreditCard2Front /> Quét mã VietQR
                           </button>
                         )}
                       </td>
