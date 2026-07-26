@@ -4,7 +4,7 @@ import { Invoice } from './entities/invoice.entity';
 import { UtilityMeter } from './entities/utility-meter.entity';
 import { Room } from '../rooms/entities/room.entity';
 import { ConfigService } from '@nestjs/config';
-import PayOS from '@payos/node';
+import PayOS = require('@payos/node');
 
 @Injectable()
 export class InvoicesService {
@@ -19,9 +19,14 @@ export class InvoicesService {
   ) {}
 
   private getPayOSInstance(): PayOS {
-    const clientId = this.configService.get<string>('PAYOS_CLIENT_ID') || '8e2023a1-77a8-444a-8d18-7b98d24599a0';
-    const apiKey = this.configService.get<string>('PAYOS_API_KEY') || '298fb492-2591-4475-8ea5-618d36006f1d';
-    const checksumKey = this.configService.get<string>('PAYOS_CHECKSUM_KEY') || 'fb97ea6b2dbf37803328e3b392ee958bf666bc0bd0f3f227b2b0a3c22b9c3f3a';
+    const clientId = this.configService.get<string>('PAYOS_CLIENT_ID');
+    const apiKey = this.configService.get<string>('PAYOS_API_KEY');
+    const checksumKey = this.configService.get<string>('PAYOS_CHECKSUM_KEY');
+    if (!clientId || !apiKey || !checksumKey) {
+      throw new BadRequestException(
+        'Chưa cấu hình khóa PayOS. Vui lòng thiết lập PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY trong file server/.env',
+      );
+    }
     return new PayOS(clientId, apiKey, checksumKey);
   }
 
