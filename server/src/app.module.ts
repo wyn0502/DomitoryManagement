@@ -33,6 +33,7 @@ import { BuildingsModule } from './buildings/buildings.module';
     RoomsModule,
     InvoicesModule,
     DashboardModule,
+    BuildingsModule,
   
   ],
 })
