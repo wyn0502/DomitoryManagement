@@ -18,6 +18,10 @@ Dự án được cấu trúc chạy song song:
   - Lập trình API Đăng ký / Đăng nhập (bcrypt băm mật khẩu, trả JWT Token).
   - Viết `RolesGuard` phân quyền và chặn sinh viên truy cập chức năng Admin.
   - Viết giao diện React Đăng nhập chung (`Login.tsx` có responsive, validation, xử lý thông báo lỗi).
+  - **CRUD Người dùng (Admin):** danh sách, sửa, xóa sinh viên (`GET/PUT/DELETE /api/users`) — trang "Sinh viên".
+  - **Đăng ký phòng qua duyệt của Admin:** sinh viên gửi yêu cầu (chờ duyệt) → Admin duyệt/từ chối; kèm cam kết nội quy.
+  - **CRUD Phòng ở (Admin):** thêm/sửa/xóa phòng (`POST/PUT/DELETE /api/rooms`) — trang "Phòng ở".
+  - Giao diện hệ thống bố cục **Sidebar** (Admin & Sinh viên) theo mẫu cổng thông tin Phenikaa.
 - **Phần 2: Tài chính & Hóa đơn (Billing - Tích hợp PayOS)**
   - Viết API/Giao diện nhập số điện, nước tiêu thụ từng phòng theo tháng (Admin).
   - Lập trình logic tính tiền hóa đơn: `Tổng tiền = Phòng cố định + (Số điện * 3.000đ) + (Số nước * 15.000đ)`. Tự động tạo hóa đơn `unpaid`.
@@ -59,6 +63,26 @@ Bao gồm các bảng chính:
 
 ---
 
+## 🔧 Tổng Hợp API CRUD (mỗi đối tượng đều có đầy đủ CRUD)
+
+| Đối tượng | CREATE | READ | UPDATE | DELETE |
+|---|---|---|---|---|
+| **users** | `POST /api/auth/register` | `GET /api/users`, `GET /api/auth/profile` | `PUT /api/users/:id` | `DELETE /api/users/:id` |
+| **rooms** | `POST /api/rooms` | `GET /api/rooms`, `GET /api/rooms/:id` | `PUT /api/rooms/:id` | `DELETE /api/rooms/:id` |
+| **utility_meters** | `POST /api/invoices/record-index` | qua `GET /api/invoices` (kèm `utilityMeter`) | `PUT /api/invoices/:id` (sửa chỉ số) | xóa dây chuyền khi xóa hóa đơn |
+| **invoices** | `POST /api/invoices/record-index` | `GET /api/invoices`, `GET /api/invoices/:id` | `PUT /api/invoices/:id` | `DELETE /api/invoices/:id` |
+
+**Nghiệp vụ bổ sung (ngoài CRUD cơ bản):**
+- Đăng ký phòng có **duyệt của Admin**: sinh viên gửi yêu cầu `POST /api/auth/register-room` (trạng thái `pending`) → Admin xem `GET /api/users/pending-rooms` → duyệt `POST /api/users/:id/approve-room` hoặc từ chối `POST /api/users/:id/reject-room`. Sinh viên **không** được xếp phòng ngay.
+- Thanh toán PayOS: `POST /api/invoices/:id/payment-url`, Webhook `POST /api/invoices/payos-webhook`, xác nhận thủ công `POST /api/invoices/:id/confirm-payment`.
+- Dashboard thống kê (SUM/COUNT/GROUP BY): `GET /api/dashboard/admin-stats`.
+- Thành viên cùng phòng: `GET /api/rooms/my-members`.
+- Bảng tin: `GET /api/announcements`, `POST /api/announcements` (Admin).
+
+Tất cả route ghi/sửa/xóa của Admin đều được bảo vệ bằng `AuthGuard` (JWT) + `RolesGuard` (chặn sinh viên, trả `403`).
+
+---
+
 ## ⚡ Hướng Dẫn Khởi Chạy Trên GitHub Codespaces (Local)
 
 Do dự án sử dụng môi trường Docker hóa thông qua Devcontainer, bạn có thể dễ dàng mở dự án trên **GitHub Codespaces** và khởi chạy dự án song song.
@@ -67,38 +91,46 @@ Do dự án sử dụng môi trường Docker hóa thông qua Devcontainer, bạ
 Import file SQL [quan_ly_ktx.sql](file:///C:/Users/SV/.gemini/antigravity-ide/scratch/DomitoryManagement/database/quan_ly_ktx.sql) vào cơ sở dữ liệu MySQL của bạn (chạy trên local hoặc MySQL Cloud Aiven).
 
 ### Bước 2: Cấu hình biến môi trường
-1. Tạo file `.env` trong thư mục `server/` dựa trên mẫu [server/.env.example](file:///C:/Users/SV/.gemini/antigravity-ide/scratch/DomitoryManagement/server/.env.example).
-2. Điền thông tin tài khoản Database của bạn và cấu hình PayOS (Dự án đã điền sẵn key PayOS Sandbox kiểm thử công khai).
+1. Tạo file `.env` trong thư mục `server/` dựa trên mẫu `server/.env.example`.
+2. Điền thông tin tài khoản Database (Local hoặc Aiven — nếu dùng Aiven đặt `DB_SSL=true`).
+3. **PayOS:** điền `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY` **của chính bạn** lấy từ kênh thanh toán Sandbox tại [business.payos.vn](https://business.payos.vn). Nếu để trống, API tạo mã QR sẽ báo lỗi rõ ràng.
+4. Tạo file `.env` trong thư mục `client/` với `PORT=5173` (đã có sẵn) để React chạy đúng cổng, tránh trùng cổng 3000 của backend.
 
 ### Bước 3: Cài đặt và khởi chạy dự án
 
+> Frontend dùng **Create React App (react-scripts)**, khởi chạy bằng `npm start`.
+
 #### Chạy Backend (NestJS):
-Mở terminal thứ nhất tại thư mục dự án và chạy:
+Mở terminal thứ nhất và chạy:
 ```bash
 cd server
 npm install
-npm run start:dev
+npm run start
 ```
-Backend sẽ khởi chạy tại cổng mạng: `http://localhost:3000`
+Backend chạy tại: `http://localhost:3000`
 
-#### Chạy Frontend (React Vite):
-Mở terminal thứ hai tại thư mục dự án và chạy:
+#### Chạy Frontend (React - CRA):
+Mở terminal thứ hai và chạy:
 ```bash
 cd client
 npm install
-npm run dev
+npm start
 ```
-Frontend sẽ khởi chạy tại cổng mạng: `http://localhost:5173`
+Frontend chạy tại: `http://localhost:5173`
 
 Mở trình duyệt truy cập `http://localhost:5173` để sử dụng giao diện.
 
 ---
 
 ## 💳 Hướng Dẫn Kiểm Thử Thanh Toán VietQR PayOS
-1. Đăng nhập tài khoản Sinh viên: `student1` / mật khẩu: `student123`.
-2. Truy cập tab **Hóa đơn phòng tôi**, tìm hóa đơn chưa đóng và bấm **Thanh toán PayOS**.
-3. Hệ thống sẽ mở cổng checkout hiển thị mã QR VietQR. Bạn chỉ cần bấm chọn nút **Thanh toán thành công** (giả lập trên PayOS Sandbox).
-4. Hệ thống sẽ kích hoạt webhook IPN để cập nhật trạng thái hóa đơn sang **Đã thanh toán** và tự động redirect bạn về trang sinh viên với banner thông báo thành công.
+> ⚠️ Cần điền **key PayOS Sandbox của bạn** vào `server/.env` trước (xem Bước 2). Key demo cũ đã hết hiệu lực, nếu dùng sẽ báo *"Cổng thanh toán không tồn tại hoặc đã tạm dừng"*.
+
+1. Đăng nhập tài khoản Sinh viên đã được xếp phòng (có hóa đơn).
+2. Vào tab **Hóa đơn & Thanh toán**, tìm hóa đơn chưa đóng và bấm **Quét mã VietQR**.
+3. Hệ thống gọi `POST /api/invoices/:id/payment-url` sinh link checkout PayOS chứa mã QR VietQR động đúng số tiền.
+4. Sau khi thanh toán trên Sandbox, PayOS gọi Webhook `POST /api/invoices/payos-webhook` (kiểm tra chữ ký) để tự động cập nhật hóa đơn sang **Đã thanh toán**, rồi redirect sinh viên về trang có banner thành công.
+
+> Ngoài ra Admin có thể **xác nhận thanh toán thủ công** (`POST /api/invoices/:id/confirm-payment`) tại trang "Quản lý hóa đơn" để demo trạng thái `paid` mà không cần PayOS.
 
 ---
 
