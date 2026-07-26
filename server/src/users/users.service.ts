@@ -1,0 +1,105 @@
+import { Injectable, Inject, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { User } from '../auth/entities/user.entity';
+import { Room } from '../rooms/entities/room.entity';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @Inject('USER_REPOSITORY')
+    private userRepository: Repository<User>,
+    @Inject('ROOM_REPOSITORY')
+    private roomRepository: Repository<Room>,
+  ) {}
+
+  private strip(u: User): any {
+    const { password: _pw, ...rest } = u;
+    return rest;
+  }
+
+  // READ: danh sách toàn bộ người dùng
+  async findAll(): Promise<any[]> {
+    const users = await this.userRepository.find({ relations: ['room'], order: { id: 'ASC' } });
+    return users.map((u) => this.strip(u));
+  }
+
+  // READ: các yêu cầu đăng ký phòng đang chờ duyệt
+  async findPendingRooms(): Promise<any[]> {
+    const users = await this.userRepository.find({
+      where: { room_status: 'pending' },
+      relations: ['room'],
+      order: { updated_at: 'DESC' },
+    });
+    return Promise.all(
+      users.map(async (u) => {
+        const pendingRoom = u.pending_room_id
+          ? await this.roomRepository.findOne({ where: { id: u.pending_room_id } })
+          : null;
+        return { ...this.strip(u), pending_room_name: pendingRoom ? pendingRoom.room_name : null };
+      }),
+    );
+  }
+
+  // UPDATE (duyệt): gán phòng đang chờ cho sinh viên
+  async approveRoom(userId: number): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Không tìm thấy sinh viên');
+    if (user.room_status !== 'pending' || !user.pending_room_id) {
+      throw new BadRequestException('Sinh viên này không có yêu cầu đăng ký phòng đang chờ');
+    }
+    const room = await this.roomRepository.findOne({ where: { id: user.pending_room_id } });
+    if (!room) throw new BadRequestException('Phòng đăng ký không còn tồn tại');
+    if (room.current_occupancy >= room.capacity) {
+      throw new ConflictException('Phòng đã đầy chỗ, không thể duyệt');
+    }
+
+    user.room_id = user.pending_room_id;
+    user.room_status = 'approved';
+    user.pending_room_id = null;
+    await this.userRepository.save(user);
+
+    room.current_occupancy += 1;
+    await this.roomRepository.save(room);
+
+    return { message: `Đã duyệt phòng ${room.room_name} cho sinh viên ${user.full_name || user.username}` };
+  }
+
+  // UPDATE (từ chối): huỷ yêu cầu đăng ký phòng
+  async rejectRoom(userId: number): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Không tìm thấy sinh viên');
+    if (user.room_status !== 'pending') {
+      throw new BadRequestException('Sinh viên này không có yêu cầu đăng ký phòng đang chờ');
+    }
+    user.room_status = 'rejected';
+    user.pending_room_id = null;
+    await this.userRepository.save(user);
+    return { message: `Đã từ chối yêu cầu đăng ký phòng của ${user.full_name || user.username}` };
+  }
+
+  // UPDATE: cập nhật thông tin hồ sơ người dùng
+  async update(userId: number, dto: any): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    ['full_name', 'phone', 'class_name', 'hometown', 'mssv', 'email'].forEach((f) => {
+      if (dto[f] !== undefined) (user as any)[f] = dto[f];
+    });
+    await this.userRepository.save(user);
+    return this.strip(user);
+  }
+
+  // DELETE: xoá người dùng (giảm số người ở nếu đang ở phòng)
+  async remove(userId: number): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    if (user.room_id) {
+      const room = await this.roomRepository.findOne({ where: { id: user.room_id } });
+      if (room && room.current_occupancy > 0) {
+        room.current_occupancy -= 1;
+        await this.roomRepository.save(room);
+      }
+    }
+    await this.userRepository.remove(user);
+    return { message: `Đã xóa người dùng ${user.full_name || user.username}` };
+  }
+}
