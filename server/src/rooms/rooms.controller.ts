@@ -17,7 +17,7 @@ export class RoomsController {
   @UseGuards(AuthGuard)
   @Get('my-members')
   async myMembers(@Request() req: any) {
-    return this.roomsService.findMyRoomMembers(req.user.room_id);
+    return this.roomsService.findMyRoomMembers(req.user.sub);
   }
 
   @Get(':id')

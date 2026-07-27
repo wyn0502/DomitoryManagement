@@ -48,6 +48,12 @@ export class User {
   @Column({ nullable: true })
   class_name: string;
 
+  @Column({ nullable: true })
+  cccd: string;
+
+  @Column({ nullable: true })
+  gender: string;
+
   @CreateDateColumn()
   created_at: Date;
 

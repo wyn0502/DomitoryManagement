@@ -2,11 +2,15 @@ import { Injectable, NotFoundException, ConflictException, Inject } from '@nestj
 import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
 
+import { User } from '../auth/entities/user.entity';
+
 @Injectable()
 export class RoomsService {
   constructor(
     @Inject('ROOM_REPOSITORY')
     private roomRepository: Repository<Room>,
+    @Inject('USER_REPOSITORY')
+    private userRepository: Repository<User>,
   ) {}
 
   // Loại bỏ trường password khỏi danh sách sinh viên trước khi trả về client
@@ -66,20 +70,26 @@ export class RoomsService {
     return { message: `Đã xóa phòng ID ${id}` };
   }
 
-  // Lấy danh sách bạn cùng phòng của sinh viên đang đăng nhập (chỉ trả thông tin tối thiểu)
-  async findMyRoomMembers(roomId?: number): Promise<Array<{ id: number; full_name: string; mssv: string; role: string }>> {
-    if (!roomId) {
+  // Lấy danh sách bạn cùng phòng của sinh viên đang đăng nhập (chính xác 100%, loại bỏ báo ảo)
+  async findMyRoomMembers(userId: number): Promise<Array<{ id: number; full_name: string; mssv: string; role: string }>> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user || user.room_status !== 'approved' || !user.room_id) {
       return [];
     }
-    const room = await this.roomRepository.findOne({ where: { id: roomId }, relations: ['students'] });
+
+    const room = await this.roomRepository.findOne({ where: { id: user.room_id }, relations: ['students'] });
     if (!room || !room.students) {
       return [];
     }
-    return room.students.map((s) => ({
-      id: s.id,
-      full_name: s.full_name,
-      mssv: s.mssv,
-      role: s.role,
-    }));
+
+    // Chỉ lấy các sinh viên CÙNG PHÒNG đã được DUYỆT PHÒNG (`room_status = 'approved'`)
+    return room.students
+      .filter((s) => s.room_status === 'approved')
+      .map((s) => ({
+        id: s.id,
+        full_name: s.full_name || s.username,
+        mssv: s.mssv || '—',
+        role: s.role,
+      }));
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -45,6 +45,24 @@ export class AnnouncementsController {
     } catch (err) {
       throw new HttpException(
         'Lỗi lưu thông báo vào cơ sở dữ liệu: ' + err.message,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  async deleteAnnouncement(@Param('id') id: string) {
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      throw new HttpException('ID không hợp lệ', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      await this.dataSource.query('DELETE FROM announcements WHERE id = ?', [numericId]);
+      return { success: true, message: `Xóa thông báo #${numericId} thành công!` };
+    } catch (err) {
+      throw new HttpException(
+        'Lỗi xóa thông báo: ' + err.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
