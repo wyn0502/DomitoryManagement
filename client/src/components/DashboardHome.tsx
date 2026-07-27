@@ -10,6 +10,7 @@ interface User {
   full_name: string;
   room_id: number | null;
   room_name: string | null;
+  room_status?: string;
 }
 
 interface Announcement {
@@ -226,21 +227,35 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab
               <h5 className="fw-bold mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                 <PeopleFill className="text-primary" /> Thành viên trong phòng
               </h5>
-              {user.room_name && <span className="badge bg-primary bg-opacity-10 text-primary">{user.room_name}</span>}
+              {user.room_status === 'approved' && user.room_name ? (
+                <span className="badge bg-success bg-opacity-10 text-success">
+                  {user.room_name.toLowerCase().startsWith('phòng') ? user.room_name : `Phòng ${user.room_name}`}
+                </span>
+              ) : user.room_status === 'pending' ? (
+                <span className="badge bg-warning bg-opacity-15 text-dark">Đang chờ duyệt</span>
+              ) : null}
             </div>
 
             {membersLoading ? (
               <div className="text-center py-4"><Spinner animation="border" variant="primary" size="sm" /></div>
-            ) : !user.room_id ? (
+            ) : user.room_status === 'pending' ? (
+              <div className="text-center py-4 px-2" style={{ backgroundColor: '#fffbeb', borderRadius: '12px', border: '1px solid #fef3c7' }}>
+                <HouseDoorFill size={32} className="mb-2 d-block mx-auto text-warning" />
+                <h6 className="fw-bold text-warning mb-1" style={{ color: '#b45309' }}>Yêu cầu đăng ký phòng đang chờ duyệt</h6>
+                <p className="small text-secondary mb-0">
+                  Bạn đã đăng ký <strong>{user.room_name ? `Phòng ${user.room_name}` : 'phòng ở'}</strong>. Vui lòng chờ Ban quản lý KTX (Admin) duyệt trước khi xem danh sách thành viên.
+                </p>
+              </div>
+            ) : !user.room_id || user.room_status === 'none' || user.room_status === 'rejected' ? (
               <div className="text-center text-secondary py-4">
                 <HouseDoorFill size={32} className="mb-2 d-block mx-auto text-muted" />
-                Bạn chưa đăng ký phòng ở.
+                {user.room_status === 'rejected' ? 'Yêu cầu đăng ký phòng trước đó của bạn đã bị từ chối.' : 'Bạn chưa được xếp phòng ở.'}
                 <div className="mt-2">
                   <Button size="sm" variant="primary" onClick={() => setActiveTab('register-room')}>Đăng ký phòng ngay</Button>
                 </div>
               </div>
             ) : members.length === 0 ? (
-              <div className="text-center text-secondary py-4">Phòng chưa có thành viên nào khác.</div>
+              <div className="text-center text-secondary py-4">Phòng hiện tại chưa có thành viên khác.</div>
             ) : (
               <div className="friend-list d-flex flex-column gap-2">
                 {members.map((m, i) => {

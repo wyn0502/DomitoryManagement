@@ -40,6 +40,56 @@ export class UsersService {
     );
   }
 
+  private async syncRoomOccupancy(roomId: number | null): Promise<void> {
+    if (!roomId) return;
+    const room = await this.roomRepository.findOne({ where: { id: roomId } });
+    if (!room) return;
+    const approvedCount = await this.userRepository.count({
+      where: { room_id: roomId, room_status: 'approved' },
+    });
+    room.current_occupancy = approvedCount;
+    await this.roomRepository.save(room);
+  }
+
+  // CREATE: Thêm sinh viên mới trực tiếp từ Admin
+  async createStudent(dto: any): Promise<any> {
+    const { username, password, email, full_name, mssv, phone, class_name, hometown, cccd, gender, room_id, room_status } = dto;
+    if (!username || !email) {
+      throw new BadRequestException('Vui lòng nhập tên đăng nhập và email');
+    }
+    const existingUser = await this.userRepository.findOne({
+      where: [{ username }, { email }],
+    });
+    if (existingUser) {
+      throw new ConflictException('Tên đăng nhập hoặc email đã tồn tại');
+    }
+
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(password || '123456', 10);
+
+    const user = this.userRepository.create({
+      username,
+      password: hashedPassword,
+      email,
+      role: 'student',
+      full_name,
+      mssv,
+      phone,
+      class_name,
+      hometown,
+      cccd,
+      gender: gender || 'Nam',
+      room_id: room_id ? Number(room_id) : null,
+      room_status: room_status || (room_id ? 'approved' : 'none'),
+    });
+
+    const saved = await this.userRepository.save(user);
+    if (saved.room_id) {
+      await this.syncRoomOccupancy(saved.room_id);
+    }
+    return this.strip(saved);
+  }
+
   // UPDATE (duyệt): gán phòng đang chờ cho sinh viên
   async approveRoom(userId: number): Promise<any> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -49,17 +99,22 @@ export class UsersService {
     }
     const room = await this.roomRepository.findOne({ where: { id: user.pending_room_id } });
     if (!room) throw new BadRequestException('Phòng đăng ký không còn tồn tại');
-    if (room.current_occupancy >= room.capacity) {
+
+    const approvedCount = await this.userRepository.count({
+      where: { room_id: room.id, room_status: 'approved' },
+    });
+    if (approvedCount >= room.capacity) {
       throw new ConflictException('Phòng đã đầy chỗ, không thể duyệt');
     }
 
+    const oldRoomId = user.room_id;
     user.room_id = user.pending_room_id;
     user.room_status = 'approved';
     user.pending_room_id = null;
     await this.userRepository.save(user);
 
-    room.current_occupancy += 1;
-    await this.roomRepository.save(room);
+    await this.syncRoomOccupancy(oldRoomId);
+    await this.syncRoomOccupancy(user.room_id);
 
     return { message: `Đã duyệt phòng ${room.room_name} cho sinh viên ${user.full_name || user.username}` };
   }
@@ -81,10 +136,26 @@ export class UsersService {
   async update(userId: number, dto: any): Promise<any> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    ['full_name', 'phone', 'class_name', 'hometown', 'mssv', 'email'].forEach((f) => {
+
+    const oldRoomId = user.room_id;
+
+    ['full_name', 'phone', 'class_name', 'hometown', 'mssv', 'email', 'cccd', 'gender'].forEach((f) => {
       if (dto[f] !== undefined) (user as any)[f] = dto[f];
     });
+
+    if (dto.room_id !== undefined) {
+      user.room_id = dto.room_id ? Number(dto.room_id) : null;
+    }
+
+    if (dto.room_status !== undefined) {
+      user.room_status = dto.room_status;
+    }
+
     await this.userRepository.save(user);
+
+    if (oldRoomId) await this.syncRoomOccupancy(oldRoomId);
+    if (user.room_id) await this.syncRoomOccupancy(user.room_id);
+
     return this.strip(user);
   }
 
@@ -92,14 +163,11 @@ export class UsersService {
   async remove(userId: number): Promise<any> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    if (user.room_id) {
-      const room = await this.roomRepository.findOne({ where: { id: user.room_id } });
-      if (room && room.current_occupancy > 0) {
-        room.current_occupancy -= 1;
-        await this.roomRepository.save(room);
-      }
-    }
+    const oldRoomId = user.room_id;
     await this.userRepository.remove(user);
+    if (oldRoomId) {
+      await this.syncRoomOccupancy(oldRoomId);
+    }
     return { message: `Đã xóa người dùng ${user.full_name || user.username}` };
   }
 }

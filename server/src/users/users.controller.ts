@@ -21,6 +21,11 @@ export class UsersController {
     return this.usersService.findPendingRooms();
   }
 
+  @Post()
+  async createStudent(@Body() dto: any) {
+    return this.usersService.createStudent(dto);
+  }
+
   @Post(':id/approve-room')
   async approveRoom(@Param('id') id: number) {
     return this.usersService.approveRoom(id);

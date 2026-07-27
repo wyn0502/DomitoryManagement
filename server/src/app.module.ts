@@ -34,8 +34,8 @@ import { UsersModule } from './users/users.module';
     RoomsModule,
     InvoicesModule,
     DashboardModule,
-    BuildingsModule,
     UsersModule,
+    BuildingsModule,
   ],
 })
 export class AppModule {}
