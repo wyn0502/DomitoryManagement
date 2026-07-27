@@ -1,5 +1,4 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
+import {Injectable, Inject, NotFoundException} from '@nestjs/common';
 import {Repository} from 'typeorm';
 import {Building} from './entities/building.entity';
 import { CreateBuildingDto } from './dto/create-building.dto';
@@ -7,7 +6,7 @@ import { CreateBuildingDto } from './dto/create-building.dto';
 @Injectable()
 export class BuildingsService {
   constructor(
-    @InjectRepository(Building)
+    @Inject('BUILDING_REPOSITORY')
     private buildingsRepository: Repository<Building>,
   ) {}
 

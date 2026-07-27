@@ -1,6 +1,7 @@
-import { ConflictException, Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { Room } from '../rooms/entities/room.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
@@ -9,19 +10,36 @@ export class AuthService {
   constructor(
     @Inject('USER_REPOSITORY')
     private userRepository: Repository<User>,
+    @Inject('ROOM_REPOSITORY')
+    private roomRepository: Repository<Room>,
     private jwtService: JwtService,
   ) {}
 
   async register(registerDto: any): Promise<any> {
     const { username, password, role, room_id, full_name, mssv, hometown, phone, class_name } = registerDto;
-    const email = registerDto.email || `${username}@ktx.com`;
-    
+    const email = (registerDto.email || '').trim();
+    if (!email) {
+      throw new BadRequestException('Email không được để trống, vui lòng nhập email của bạn');
+    }
+
     // Kiểm tra trùng lặp
     const existingUser = await this.userRepository.findOne({
       where: [{ username }, { email }],
     });
     if (existingUser) {
       throw new ConflictException('Tên đăng nhập hoặc email đã tồn tại');
+    }
+
+    // Kiểm tra phòng ở đăng ký (chỉ áp dụng cho sinh viên có chọn phòng)
+    let targetRoom: Room | null = null;
+    if (role !== 'admin' && room_id) {
+      targetRoom = await this.roomRepository.findOne({ where: { id: room_id } });
+      if (!targetRoom) {
+        throw new BadRequestException('Phòng ở đăng ký không tồn tại');
+      }
+      if (targetRoom.current_occupancy >= targetRoom.capacity) {
+        throw new ConflictException('Phòng đã đầy chỗ, vui lòng chọn phòng khác');
+      }
     }
 
     // Mã hóa mật khẩu
@@ -41,6 +59,13 @@ export class AuthService {
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Tăng số lượng người ở hiện tại của phòng sau khi đăng ký thành công
+    if (targetRoom) {
+      targetRoom.current_occupancy += 1;
+      await this.roomRepository.save(targetRoom);
+    }
+
     const { password: _, ...result } = savedUser;
     return result;
   }
@@ -80,8 +105,45 @@ export class AuthService {
         role: user.role,
         room_id: user.room_id,
         room_name: user.room ? user.room.room_name : null,
+        room_status: user.room_status,
         full_name: user.full_name,
       },
+    };
+  }
+
+  // Sinh viên GỬI YÊU CẦU đăng ký phòng (chờ Admin duyệt, chưa được xếp phòng ngay)
+  async registerRoom(userId: number, roomId: number): Promise<any> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Không tìm thấy người dùng');
+    }
+    if (user.role === 'admin') {
+      throw new BadRequestException('Tài khoản quản trị viên không cần đăng ký phòng');
+    }
+    if (user.room_id) {
+      throw new ConflictException('Bạn đã được xếp phòng rồi, không thể đăng ký thêm phòng khác');
+    }
+    if (user.room_status === 'pending') {
+      throw new ConflictException('Bạn đã gửi yêu cầu đăng ký phòng và đang chờ Admin duyệt');
+    }
+
+    const room = await this.roomRepository.findOne({ where: { id: roomId } });
+    if (!room) {
+      throw new BadRequestException('Phòng đăng ký không tồn tại');
+    }
+    if (room.current_occupancy >= room.capacity) {
+      throw new ConflictException('Phòng đã đầy chỗ, vui lòng chọn phòng khác');
+    }
+
+    // Chỉ ghi nhận yêu cầu, KHÔNG gán phòng và KHÔNG tăng số người ở (chờ Admin duyệt)
+    user.pending_room_id = roomId;
+    user.room_status = 'pending';
+    await this.userRepository.save(user);
+
+    return {
+      message: `Đã gửi yêu cầu đăng ký phòng ${room.room_name}. Vui lòng chờ Ban quản lý ký túc xá (Admin) duyệt.`,
+      room_status: 'pending',
+      pending_room_name: room.room_name,
     };
   }
 

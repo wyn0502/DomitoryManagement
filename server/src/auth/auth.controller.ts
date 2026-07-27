@@ -23,6 +23,13 @@ export class AuthController {
     return this.authService.getProfile(req.user.sub);
   }
 
+  // Đăng ký phòng ở (yêu cầu đã đăng nhập)
+  @UseGuards(AuthGuard)
+  @Post('register-room')
+  async registerRoom(@Request() req: any, @Body() body: { room_id: number }) {
+    return this.authService.registerRoom(req.user.sub, body.room_id);
+  }
+
   // --- API TEST COOKIES (Yêu cầu 1) ---
   @Get('set-cookie')
   setCookie(@Res() res: Response) {
