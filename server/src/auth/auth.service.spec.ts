@@ -12,12 +12,18 @@ jest.mock('bcrypt', () => ({
 describe('AuthService', () => {
   let service: AuthService;
   let userRepositoryMock: any;
+  let roomRepositoryMock: any;
   let jwtServiceMock: any;
 
   beforeEach(async () => {
     userRepositoryMock = {
       findOne: jest.fn(),
       create: jest.fn(),
+      save: jest.fn(),
+    };
+
+    roomRepositoryMock = {
+      findOne: jest.fn(),
       save: jest.fn(),
     };
 
@@ -31,6 +37,10 @@ describe('AuthService', () => {
         {
           provide: 'USER_REPOSITORY',
           useValue: userRepositoryMock,
+        },
+        {
+          provide: 'ROOM_REPOSITORY',
+          useValue: roomRepositoryMock,
         },
         {
           provide: JwtService,
@@ -73,6 +83,21 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ id: 1, username: 'testuser', email: 'test@example.com', role: 'student' });
       expect(userRepositoryMock.save).toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException if the selected room is already full', async () => {
+      userRepositoryMock.findOne.mockResolvedValue(null);
+      roomRepositoryMock.findOne.mockResolvedValue({ id: 1, capacity: 4, current_occupancy: 4 });
+
+      await expect(
+        service.register({
+          username: 'newstudent',
+          password: 'password',
+          email: 'new@example.com',
+          role: 'student',
+          room_id: 1,
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 

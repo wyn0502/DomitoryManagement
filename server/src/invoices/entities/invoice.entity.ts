@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Room } from '../../rooms/entities/room.entity';
 import { UtilityMeter } from './utility-meter.entity';
+import { User } from '../../auth/entities/user.entity';
 
 @Entity('invoices')
 export class Invoice {
@@ -14,6 +15,13 @@ export class Invoice {
   @JoinColumn({ name: 'room_id' })
   room: Room;
 
+  @Column({ name: 'user_id', nullable: true })
+  user_id: number;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
   @Column({ name: 'utility_meter_id', nullable: true })
   utility_meter_id: number;
 
@@ -26,6 +34,15 @@ export class Invoice {
 
   @Column()
   year: number;
+
+  @Column({ default: 'Điện nước' })
+  service_type: string; // 'Điện nước' | 'Phòng' | 'Khác'
+
+  @Column({ nullable: true })
+  service_name: string; // e.g. "Tiền điện nước tháng 7 năm 2026"
+
+  @Column({ type: 'text', nullable: true })
+  content: string; // Ghi chú / chi tiết tiêu thụ
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   room_fee: number;
@@ -41,6 +58,12 @@ export class Invoice {
 
   @Column({ type: 'enum', enum: ['unpaid', 'paid'], default: 'unpaid' })
   status: 'unpaid' | 'paid';
+
+  @Column({ type: 'date', nullable: true })
+  due_date: Date;
+
+  @Column({ type: 'date', nullable: true })
+  paid_at: Date;
 
   @Column({ type: 'bigint', nullable: true, unique: true })
   payos_order_code: number; // Lưu mã đơn hàng PayOS dùng để đối soát qua Webhook

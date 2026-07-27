@@ -3,11 +3,15 @@ import { Repository } from 'typeorm';
 import { Invoice } from './entities/invoice.entity';
 import { UtilityMeter } from './entities/utility-meter.entity';
 import { Room } from '../rooms/entities/room.entity';
+import { User } from '../auth/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
-import PayOS from '@payos/node';
+import PayOS = require('@payos/node');
 
 @Injectable()
 export class InvoicesService {
+  private customElectricPrice: number | null = null;
+  private customWaterPrice: number | null = null;
+
   constructor(
     @Inject('INVOICE_REPOSITORY')
     private invoiceRepository: Repository<Invoice>,
@@ -15,24 +19,47 @@ export class InvoicesService {
     private meterRepository: Repository<UtilityMeter>,
     @Inject('ROOM_REPOSITORY')
     private roomRepository: Repository<Room>,
+    @Inject('USER_REPOSITORY')
+    private userRepository: Repository<User>,
     private configService: ConfigService,
   ) {}
 
+  getUtilityPrices() {
+    const electricPrice = this.customElectricPrice ?? parseInt(this.configService.get('ELECTRICITY_PRICE') || '3000', 10);
+    const waterPrice = this.customWaterPrice ?? parseInt(this.configService.get('WATER_PRICE') || '15000', 10);
+    return { electricPrice, waterPrice };
+  }
+
+  updateUtilityPrices(dto: { electricPrice?: number; waterPrice?: number }) {
+    if (dto.electricPrice !== undefined && dto.electricPrice >= 0) {
+      this.customElectricPrice = dto.electricPrice;
+    }
+    if (dto.waterPrice !== undefined && dto.waterPrice >= 0) {
+      this.customWaterPrice = dto.waterPrice;
+    }
+    return this.getUtilityPrices();
+  }
+
   private getPayOSInstance(): PayOS {
-    const clientId = this.configService.get<string>('PAYOS_CLIENT_ID') || '8e2023a1-77a8-444a-8d18-7b98d24599a0';
-    const apiKey = this.configService.get<string>('PAYOS_API_KEY') || '298fb492-2591-4475-8ea5-618d36006f1d';
-    const checksumKey = this.configService.get<string>('PAYOS_CHECKSUM_KEY') || 'fb97ea6b2dbf37803328e3b392ee958bf666bc0bd0f3f227b2b0a3c22b9c3f3a';
+    const clientId = this.configService.get<string>('PAYOS_CLIENT_ID');
+    const apiKey = this.configService.get<string>('PAYOS_API_KEY');
+    const checksumKey = this.configService.get<string>('PAYOS_CHECKSUM_KEY');
+    if (!clientId || !apiKey || !checksumKey) {
+      throw new BadRequestException(
+        'Chưa cấu hình khóa PayOS. Vui lòng thiết lập PAYOS_CLIENT_ID, PAYOS_API_KEY, PAYOS_CHECKSUM_KEY trong file server/.env',
+      );
+    }
     return new PayOS(clientId, apiKey, checksumKey);
   }
 
-  // 1. CREATE: Nhập chỉ số điện nước & tự động tạo hóa đơn
+  // 1. CREATE: Nhập chỉ số điện nước & tự động chia đều hóa đơn cho từng thành viên trong phòng
   async recordUsageAndCreateInvoice(dto: {
     room_id: number;
     month: number;
     year: number;
     electricity_index: number;
     water_index: number;
-  }): Promise<Invoice> {
+  }): Promise<Invoice[]> {
     const { room_id, month, year, electricity_index, water_index } = dto;
 
     const room = await this.roomRepository.findOne({ where: { id: room_id } });
@@ -66,13 +93,9 @@ export class InvoicesService {
       consumedWater = water_index - previousMeter.water_index;
     }
 
-    const electricPrice = parseInt(this.configService.get('ELECTRICITY_PRICE') || '3000', 10);
-    const waterPrice = parseInt(this.configService.get('WATER_PRICE') || '15000', 10);
-
-    const electricity_fee = consumedElectricity * electricPrice;
-    const water_fee = consumedWater * waterPrice;
-    const room_fee = Number(room.fixed_rent);
-    const total_amount = room_fee + electricity_fee + water_fee;
+    const { electricPrice, waterPrice } = this.getUtilityPrices();
+    const totalElectricityFee = consumedElectricity * electricPrice;
+    const totalWaterFee = consumedWater * waterPrice;
 
     const meter = this.meterRepository.create({
       room_id,
@@ -83,56 +106,168 @@ export class InvoicesService {
     });
     const savedMeter = await this.meterRepository.save(meter);
 
-    // Sinh mã đơn hàng ngẫu nhiên duy nhất cho PayOS
-    const payosOrderCode = Math.floor(100000 + Math.random() * 900000) + savedMeter.id;
-
-    const invoice = this.invoiceRepository.create({
-      room_id,
-      utility_meter_id: savedMeter.id,
-      month,
-      year,
-      room_fee,
-      electricity_fee,
-      water_fee,
-      total_amount,
-      status: 'unpaid',
-      payos_order_code: payosOrderCode,
+    // Lấy danh sách các sinh viên đang ở trong phòng (room_status = 'approved')
+    const activeStudents = await this.userRepository.find({
+      where: { room_id, room_status: 'approved' },
     });
 
-    return this.invoiceRepository.save(invoice);
+    const createdInvoices: Invoice[] = [];
+    const count = activeStudents.length;
+
+    // Tính thời hạn thanh toán (mặc định sau 10 ngày)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 10);
+
+    if (count > 0) {
+      const elecPerStd = Math.round(totalElectricityFee / count);
+      const waterPerStd = Math.round(totalWaterFee / count);
+      const totalPerStd = elecPerStd + waterPerStd;
+
+      for (const std of activeStudents) {
+        const payosOrderCode = Math.floor(100000 + Math.random() * 900000) + savedMeter.id + (std.id % 1000);
+        const invoice = this.invoiceRepository.create({
+          room_id,
+          user_id: std.id,
+          utility_meter_id: savedMeter.id,
+          month,
+          year,
+          service_type: 'Điện nước',
+          service_name: `Tiền điện nước tháng ${month} năm ${year}`,
+          content: `Điện: ${consumedElectricity.toFixed(1)} kWh (${electricPrice.toLocaleString('vi-VN')}đ/kWh), Nước: ${consumedWater.toFixed(1)} m³ (${waterPrice.toLocaleString('vi-VN')}đ/m³) — Chia đều cho ${count} thành viên`,
+          room_fee: 0,
+          electricity_fee: elecPerStd,
+          water_fee: waterPerStd,
+          total_amount: totalPerStd,
+          status: 'unpaid',
+          due_date: dueDate,
+          payos_order_code: payosOrderCode,
+        });
+        const saved = await this.invoiceRepository.save(invoice);
+        createdInvoices.push(saved);
+      }
+    } else {
+      // Phòng trống chưa có sinh viên -> Tạo 1 hóa đơn chung cho phòng
+      const payosOrderCode = Math.floor(100000 + Math.random() * 900000) + savedMeter.id;
+      const invoice = this.invoiceRepository.create({
+        room_id,
+        user_id: null,
+        utility_meter_id: savedMeter.id,
+        month,
+        year,
+        service_type: 'Điện nước',
+        service_name: `Tiền điện nước tháng ${month} năm ${year}`,
+        content: `Điện: ${consumedElectricity.toFixed(1)} kWh, Nước: ${consumedWater.toFixed(1)} m³ (Phòng hiện trống)`,
+        room_fee: 0,
+        electricity_fee: totalElectricityFee,
+        water_fee: totalWaterFee,
+        total_amount: totalElectricityFee + totalWaterFee,
+        status: 'unpaid',
+        due_date: dueDate,
+        payos_order_code: payosOrderCode,
+      });
+      const saved = await this.invoiceRepository.save(invoice);
+      createdInvoices.push(saved);
+    }
+
+    return createdInvoices;
+  }
+
+  // Tạo hóa đơn Tiền Phòng riêng biệt cho sinh viên
+  async createRoomFeeInvoices(dto: { room_id?: number; month: number; year: number }): Promise<Invoice[]> {
+    const { room_id, month, year } = dto;
+    let students: User[] = [];
+
+    if (room_id) {
+      students = await this.userRepository.find({
+        where: { room_id, room_status: 'approved' },
+        relations: ['room'],
+      });
+    } else {
+      students = await this.userRepository.find({
+        where: { room_status: 'approved' },
+        relations: ['room'],
+      });
+    }
+
+    if (students.length === 0) {
+      throw new BadRequestException('Không tìm thấy sinh viên nào trong phòng để tạo hóa đơn tiền phòng');
+    }
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 15);
+
+    const createdInvoices: Invoice[] = [];
+
+    for (const std of students) {
+      if (!std.room_id || !std.room) continue;
+
+      // Kiểm tra hóa đơn tiền phòng tháng đó đã tạo chưa
+      const existing = await this.invoiceRepository.findOne({
+        where: { user_id: std.id, service_type: 'Phòng', month, year },
+      });
+      if (existing) continue;
+
+      const roomRent = Number(std.room.fixed_rent || 1500000);
+      const payosOrderCode = Math.floor(100000 + Math.random() * 900000) + std.id + month * 10;
+
+      const invoice = this.invoiceRepository.create({
+        room_id: std.room_id,
+        user_id: std.id,
+        month,
+        year,
+        service_type: 'Phòng',
+        service_name: `Tiền phòng đợt KTX (Tháng ${month}/${year})`,
+        content: `Tiền thuê phòng ${std.room.room_name} (${std.room.type || 'Thường'}) đợt tháng ${month}/${year}`,
+        room_fee: roomRent,
+        electricity_fee: 0,
+        water_fee: 0,
+        total_amount: roomRent,
+        status: 'unpaid',
+        due_date: dueDate,
+        payos_order_code: payosOrderCode,
+      });
+
+      const saved = await this.invoiceRepository.save(invoice);
+      createdInvoices.push(saved);
+    }
+
+    return createdInvoices;
   }
 
   // 2. READ: Xem danh sách hóa đơn (Admin hoặc Student)
-  async findAll(role: string, roomId?: number): Promise<Invoice[]> {
+  async findAll(role: string, userId?: number, roomId?: number): Promise<Invoice[]> {
     if (role === 'admin') {
       return this.invoiceRepository.find({
-        relations: ['room', 'utilityMeter'],
-        order: { year: 'DESC', month: 'DESC' },
+        relations: ['room', 'user', 'utilityMeter'],
+        order: { year: 'DESC', month: 'DESC', id: 'DESC' },
       });
     } else {
-      if (!roomId) {
+      if (!userId && !roomId) {
         return [];
       }
       return this.invoiceRepository.find({
-        where: { room_id: roomId },
-        relations: ['room', 'utilityMeter'],
-        order: { year: 'DESC', month: 'DESC' },
+        where: [
+          { user_id: userId },
+          { room_id: roomId },
+        ],
+        relations: ['room', 'user', 'utilityMeter'],
+        order: { year: 'DESC', month: 'DESC', id: 'DESC' },
       });
     }
   }
 
-  async findOne(id: number, role: string, userRoomId?: number): Promise<Invoice> {
+  async findOne(id: number, role: string, userId?: number, userRoomId?: number): Promise<Invoice> {
     const invoice = await this.invoiceRepository.findOne({
       where: { id },
-      relations: ['room', 'utilityMeter'],
+      relations: ['room', 'user', 'utilityMeter'],
     });
 
     if (!invoice) {
       throw new NotFoundException(`Không tìm thấy hóa đơn có ID ${id}`);
     }
 
-    if (role !== 'admin' && invoice.room_id !== userRoomId) {
-      throw new BadRequestException('Bạn không có quyền xem hóa đơn của phòng khác');
+    if (role !== 'admin' && invoice.user_id !== userId && invoice.room_id !== userRoomId) {
+      throw new BadRequestException('Bạn không có quyền xem hóa đơn này');
     }
 
     return invoice;
@@ -140,75 +275,58 @@ export class InvoicesService {
 
   // 3. UPDATE: Cập nhật hóa đơn
   async update(id: number, updateDto: any): Promise<Invoice> {
-    const invoice = await this.invoiceRepository.findOne({ where: { id }, relations: ['utilityMeter', 'room'] });
+    const invoice = await this.invoiceRepository.findOne({
+      where: { id },
+      relations: ['utilityMeter', 'room', 'user'],
+    });
     if (!invoice) {
       throw new NotFoundException(`Không tìm thấy hóa đơn ID ${id}`);
     }
 
     if (updateDto.status) {
       invoice.status = updateDto.status;
+      if (updateDto.status === 'paid' && !invoice.paid_at) {
+        invoice.paid_at = new Date();
+      }
     }
 
+    if (updateDto.service_name !== undefined) invoice.service_name = updateDto.service_name;
+    if (updateDto.content !== undefined) invoice.content = updateDto.content;
+    if (updateDto.due_date !== undefined) invoice.due_date = new Date(updateDto.due_date);
+    if (updateDto.total_amount !== undefined) invoice.total_amount = Number(updateDto.total_amount);
+
     if (updateDto.electricity_index !== undefined || updateDto.water_index !== undefined) {
-      if (!invoice.utilityMeter) {
-        throw new BadRequestException('Hóa đơn này không gắn liền với chỉ số điện nước nào.');
+      if (invoice.utilityMeter) {
+        const meter = invoice.utilityMeter;
+        if (updateDto.electricity_index !== undefined) meter.electricity_index = updateDto.electricity_index;
+        if (updateDto.water_index !== undefined) meter.water_index = updateDto.water_index;
+        await this.meterRepository.save(meter);
       }
-      const meter = invoice.utilityMeter;
-      if (updateDto.electricity_index !== undefined) {
-        meter.electricity_index = updateDto.electricity_index;
-      }
-      if (updateDto.water_index !== undefined) {
-        meter.water_index = updateDto.water_index;
-      }
-      await this.meterRepository.save(meter);
-
-      const prevMonth = invoice.month === 1 ? 12 : invoice.month - 1;
-      const prevYear = invoice.month === 1 ? invoice.year - 1 : invoice.year;
-      const previousMeter = await this.meterRepository.findOne({
-        where: { room_id: invoice.room_id, month: prevMonth, year: prevYear },
-      });
-
-      let consumedElectricity = meter.electricity_index;
-      let consumedWater = meter.water_index;
-
-      if (previousMeter) {
-        consumedElectricity = meter.electricity_index - previousMeter.electricity_index;
-        consumedWater = meter.water_index - previousMeter.water_index;
-      }
-
-      const electricPrice = parseInt(this.configService.get('ELECTRICITY_PRICE') || '3000', 10);
-      const waterPrice = parseInt(this.configService.get('WATER_PRICE') || '15000', 10);
-
-      invoice.electricity_fee = consumedElectricity * electricPrice;
-      invoice.water_fee = consumedWater * waterPrice;
-      invoice.total_amount = Number(invoice.room_fee) + invoice.electricity_fee + invoice.water_fee;
     }
 
     return this.invoiceRepository.save(invoice);
   }
 
   async confirmPayment(id: number): Promise<Invoice> {
-    const invoice = await this.invoiceRepository.findOne({ where: { id } });
+    const invoice = await this.invoiceRepository.findOne({ where: { id }, relations: ['user', 'room'] });
     if (!invoice) {
       throw new NotFoundException(`Không tìm thấy hóa đơn ID ${id}`);
     }
     invoice.status = 'paid';
+    invoice.paid_at = new Date();
     return this.invoiceRepository.save(invoice);
   }
 
   // 4. DELETE: Xóa hóa đơn
   async remove(id: number): Promise<void> {
-    const invoice = await this.invoiceRepository.remove(
-      await this.invoiceRepository.findOneOrFail({ where: { id }, relations: ['utilityMeter'] })
-    );
-    if (invoice.utilityMeter) {
-      await this.meterRepository.remove(invoice.utilityMeter);
-    }
+    const invoice = await this.invoiceRepository.findOne({ where: { id }, relations: ['utilityMeter'] });
+    if (!invoice) throw new NotFoundException('Hóa đơn không tồn tại');
+    await this.invoiceRepository.remove(invoice);
   }
 
   // 5. CỔNG THANH TOÁN PAYOS INTEGRATION
   async createPayosPaymentUrl(invoiceId: number): Promise<string> {
-    const invoice = await this.invoiceRepository.findOne({ where: { id: invoiceId } });
+    const invoice = await this.invoiceRepository.findOne({ where: { id: invoiceId }, relations: ['user', 'room'] });
     if (!invoice) {
       throw new NotFoundException(`Không tìm thấy hóa đơn ID ${invoiceId}`);
     }
@@ -226,7 +344,7 @@ export class InvoicesService {
     const cancelUrl = this.configService.get('PAYOS_CANCEL_URL') || `http://localhost:5173/student-billing?status=cancel`;
     const returnUrl = this.configService.get('PAYOS_RETURN_URL') || `http://localhost:5173/student-billing?status=success`;
     
-    const description = `Thanh toan KTX HD ${invoice.id}`.substring(0, 25);
+    const description = `${invoice.service_type || 'KTX'} HD ${invoice.id}`.substring(0, 25);
 
     const paymentBody = {
       orderCode: Number(invoice.payos_order_code),
@@ -254,6 +372,7 @@ export class InvoicesService {
       const invoice = await this.invoiceRepository.findOne({ where: { payos_order_code: orderCode } });
       if (invoice && invoice.status !== 'paid') {
         invoice.status = 'paid';
+        invoice.paid_at = new Date();
         await this.invoiceRepository.save(invoice);
       }
       return { success: true, verifiedData };

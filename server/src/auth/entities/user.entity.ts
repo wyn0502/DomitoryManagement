@@ -27,6 +27,13 @@ export class User {
   @JoinColumn({ name: 'room_id' })
   room: Room;
 
+  // Đăng ký phòng chờ Admin duyệt
+  @Column({ name: 'pending_room_id', nullable: true })
+  pending_room_id: number;
+
+  @Column({ type: 'enum', enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' })
+  room_status: 'none' | 'pending' | 'approved' | 'rejected';
+
   // Các thuộc tính cư dân (SV2 - Đông)
   @Column({ nullable: true })
   full_name: string;
@@ -42,6 +49,12 @@ export class User {
 
   @Column({ nullable: true })
   class_name: string;
+
+  @Column({ nullable: true })
+  cccd: string;
+
+  @Column({ nullable: true })
+  gender: string;
 
   @CreateDateColumn()
   created_at: Date;

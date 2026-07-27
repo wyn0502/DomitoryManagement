@@ -45,7 +45,9 @@ CREATE TABLE IF NOT EXISTS `users` (
     `password` VARCHAR(255) NOT NULL, -- Sẽ lưu mật khẩu mã hóa bcrypt
     `email` VARCHAR(100) NOT NULL UNIQUE,
     `role` ENUM('admin', 'student') NOT NULL DEFAULT 'student',
-    `room_id` INT NULL, -- Phòng được xếp (Admin thì NULL)
+    `room_id` INT NULL, -- Phòng ĐÃ được Admin duyệt & xếp (Admin thì NULL)
+    `pending_room_id` INT NULL, -- Phòng sinh viên đăng ký đang CHỜ Admin duyệt
+    `room_status` ENUM('none','pending','approved','rejected') NOT NULL DEFAULT 'none', -- Trạng thái duyệt phòng
     -- Các thông tin sinh viên nội trú (SV2 - Đông)
     `full_name` VARCHAR(100) NULL,
     `mssv` VARCHAR(20) NULL UNIQUE,
@@ -187,6 +189,9 @@ INSERT INTO `users` (`username`, `password`, `email`, `role`, `room_id`, `full_n
 ('student1', '$2b$10$iM.P0Y3d7p5mO58u2m.R2u.vGgR38W1hG44p/K5l26R.oG3X26l2G', 'student1@ktx.com', 'student', 1, 'Trần Thị Quỳnh', 'SV202401', 'Hải Phòng', '0977777777', 'CNTT01'),
 ('student2', '$2b$10$iM.P0Y3d7p5mO58u2m.R2u.vGgR38W1hG44p/K5l26R.oG3X26l2G', 'student2@ktx.com', 'student', 2, 'Lê Văn Đông', 'SV202402', 'Đà Nẵng', '0966666666', 'Kế Toán 02')
 ON DUPLICATE KEY UPDATE `username` = VALUES(`username`);
+
+-- Sinh viên đã được xếp phòng thì trạng thái duyệt = approved
+UPDATE `users` SET `room_status` = 'approved' WHERE `room_id` IS NOT NULL;
 
 -- Thêm hợp đồng mẫu (SV2)
 INSERT INTO `contracts` (`user_id`, `room_id`, `start_date`, `end_date`, `status`) VALUES
