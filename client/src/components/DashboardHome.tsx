@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Form, Button, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
 import {
   FileText, Search, BellFill, PeopleFill, CalendarEvent, CaretRightFill,
@@ -37,6 +38,8 @@ interface DashboardHomeProps {
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab }) => {
+  const navigate = useNavigate();
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -166,7 +169,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab
               <h5 className="fw-bold mb-0 d-flex align-items-center" style={{ color: 'var(--text-primary)' }}>
                 <BellFill className="me-2 text-warning" /> Bảng tin Ký túc xá
               </h5>
-              <Button variant="link" className="text-decoration-none p-0 small" style={{ color: 'var(--primary)' }} onClick={() => setFilterQuery({ text: '', start: '', end: '' })}>Xem tất cả</Button>
+              <Button variant="link" className="text-decoration-none p-0 small" style={{ color: 'var(--primary)' }} onClick={() => navigate('/announcements-list')}>Xem tất cả</Button>
             </div>
 
             <Form onSubmit={handleSearchSubmit} className="mb-4 p-3 rounded-3" style={{ backgroundColor: '#f8fafc', border: '1px solid var(--border-glass)' }}>
@@ -199,7 +202,12 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab
                   const dept = getDepartment(item.title, item.content);
                   const colorClass = getDeptColor(dept);
                   return (
-                    <Card key={item.id} className="border-0 mb-3 p-3 announcement-card rounded-3" style={{ backgroundColor: '#f8fafc' }}>
+                    <Card
+                      key={item.id}
+                      className="border-0 mb-3 p-3 announcement-card rounded-3"
+                      style={{ backgroundColor: '#f8fafc', cursor: 'pointer' }}
+                      onClick={() => navigate(`/announcements-list/${item.id}`)}
+                    >
                       <Row className="g-3 align-items-center">
                         <Col xs={2} sm={1.5} className="text-center">
                           <div className="announcement-icon bg-warning bg-opacity-10 p-2 rounded-circle text-warning d-inline-block"><FileText size={24} /></div>
@@ -209,7 +217,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab
                           <div className="d-flex flex-wrap gap-3 align-items-center text-secondary" style={{ fontSize: '0.8rem' }}>
                             <span className={`fw-semibold d-flex align-items-center gap-1 ${colorClass}`}><CaretRightFill size={10} /> {dept}</span>
                             <span className="d-flex align-items-center gap-1"><CalendarEvent size={12} /> {new Date(item.created_at).toLocaleDateString('vi-VN')}</span>
-                            <span className="text-decoration-underline cursor-pointer fw-semibold ms-auto" style={{ color: 'var(--primary)' }} onClick={() => alert(`NỘI DUNG THÔNG BÁO:\n\n${item.content}`)}>Xem chi tiết</span>
+                            <span className="fw-semibold ms-auto d-inline-flex align-items-center gap-1" style={{ color: 'var(--primary)' }}>Đọc chi tiết <CaretRightFill size={10} /></span>
                           </div>
                         </Col>
                       </Row>

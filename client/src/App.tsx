@@ -12,6 +12,8 @@ import AssetsAdmin from './components/AssetsAdmin';
 import TicketsAdmin from './components/TicketsAdmin';
 import TicketsStudent from './components/TicketsStudent';
 import AnnouncementsAdmin from './components/AnnouncementsAdmin';
+import AnnouncementsList from './components/AnnouncementsList';
+import AnnouncementDetail from './components/AnnouncementDetail';
 import {
   HouseDoorFill, PersonVcardFill, CreditCard2FrontFill, BoxArrowRight,
   Grid1x2Fill, ReceiptCutoff, DoorOpenFill, ArrowRepeat, PeopleFill,
@@ -47,7 +49,8 @@ const ADMIN_MENU: MenuItem[] = [
 ];
 
 const STUDENT_MENU: MenuItem[] = [
-  { key: 'home', path: '/home', label: 'Trang chủ / Tin tức', icon: <HouseDoorFill size={18} /> },
+  { key: 'home', path: '/home', label: 'Trang chủ', icon: <HouseDoorFill size={18} /> },
+  { key: 'announcements-list', path: '/announcements-list', label: 'Bảng tin thông báo', icon: <MegaphoneFill size={18} /> },
   { key: 'profile', path: '/profile', label: 'Thông tin cá nhân', icon: <PersonVcardFill size={18} /> },
   { key: 'register-room', path: '/register-room', label: 'Đăng ký phòng ở', icon: <DoorOpenFill size={18} /> },
   { key: 'billing', path: '/billing', label: 'Hóa đơn & Thanh toán', icon: <CreditCard2FrontFill size={18} /> },
@@ -62,7 +65,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/assets': 'Quản lý Trang thiết bị',
   '/tickets': 'Quản lý Báo cáo sự cố',
   '/announcements': 'Bảng tin & Thông báo',
-  '/home': 'Trang chủ / Tin tức',
+  '/home': 'Trang chủ',
+  '/announcements-list': 'Bảng tin & Thông báo',
   '/profile': 'Thông tin cá nhân',
   '/register-room': 'Đăng ký phòng ở Ký túc xá',
   '/billing': 'Hóa đơn & Thanh toán',
@@ -160,6 +164,9 @@ const App: React.FC = () => {
   const menu = isAdmin ? ADMIN_MENU : STUDENT_MENU;
   const initial = (user.full_name || user.username || '?').charAt(0).toUpperCase();
   const currentPath = location.pathname;
+  const pageTitle = currentPath.startsWith('/announcements-list/')
+    ? 'Chi tiết thông báo'
+    : PAGE_TITLES[currentPath] || 'Hệ thống Ký túc xá';
 
   return (
     <div className="pk-shell">
@@ -195,7 +202,7 @@ const App: React.FC = () => {
       {/* ===== MAIN CONTENT WRAPPER ===== */}
       <div className="pk-main">
         <header className="pk-topbar">
-          <h1 className="pk-page-title">{PAGE_TITLES[currentPath] || 'Hệ thống Ký túc xá'}</h1>
+          <h1 className="pk-page-title">{pageTitle}</h1>
           <div className="pk-user-badge">
             <div className="pk-user-avatar">{initial}</div>
             <div style={{ lineHeight: 1.1 }}>
@@ -223,6 +230,8 @@ const App: React.FC = () => {
             ) : (
               <>
                 <Route path="/home" element={<DashboardHome token={token} user={user} setActiveTab={(key) => navigate('/' + key)} />} />
+                <Route path="/announcements-list" element={<AnnouncementsList token={token} />} />
+                <Route path="/announcements-list/:id" element={<AnnouncementDetail token={token} />} />
                 <Route path="/profile" element={<Profile token={token} />} />
                 <Route path="/register-room" element={<RoomRegistration token={token} user={user} onRoomRequested={handleRoomRequested} />} />
                 <Route path="/billing" element={<StudentBilling token={token} user={user} />} />
