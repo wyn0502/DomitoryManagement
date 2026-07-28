@@ -9,6 +9,7 @@ import {
 
 interface Room {
   id: number;
+  building_id?: number;
   room_name: string;
   price?: number;
   fixed_rent?: number;
@@ -16,6 +17,15 @@ interface Room {
   current_occupancy?: number;
   type?: string;
   students?: Array<{ id: number; full_name?: string }>;
+}
+
+interface Building {
+  id: number;
+  name: string;
+  description?: string | null;
+  rooms?: Room[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface UtilityMeter {
@@ -36,6 +46,19 @@ interface UserLite {
   phone: string;
   class_name?: string;
   hometown?: string;
+}
+
+interface Contract {
+  id: number;
+  userId: number;
+  roomId: number;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'inactive';
+  user?: UserLite & { username?: string; room_status?: string };
+  room?: Room;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Invoice {
@@ -79,7 +102,7 @@ interface EditingInvoiceState {
 
 interface AdminDashboardProps {
   token: string;
-  section: string; // 'overview' | 'invoices' | 'rooms'
+  section: string; // 'overview' | 'invoices' | 'rooms' | 'buildings' | 'contracts'
 }
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
@@ -87,6 +110,9 @@ const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
@@ -129,20 +155,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
   const [editingInvoice, setEditingInvoice] = useState<EditingInvoiceState | null>(null);
 
   // CRUD Phòng ở
-  const emptyRoom = { room_name: '', type: 'Thường', capacity: '4', fixed_rent: '1500000' };
-  const [roomForm, setRoomForm] = useState<{ room_name: string; type: string; capacity: string; fixed_rent: string }>(emptyRoom);
+  const emptyRoom = { room_name: '', building_id: '', type: 'Thường', capacity: '4', fixed_rent: '1500000' };
+  const [roomForm, setRoomForm] = useState<{ room_name: string; building_id: string; type: string; capacity: string; fixed_rent: string }>(emptyRoom);
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+
+  // CRUD Tòa nhà
+  const emptyBuilding = { name: '', description: '' };
+  const [buildingForm, setBuildingForm] = useState<{ name: string; description: string }>(emptyBuilding);
+  const [editingBuildingId, setEditingBuildingId] = useState<number | null>(null);
+
+  // CRUD Hợp đồng cư dân
+  const emptyContract = {
+    userId: '',
+    roomId: '',
+    startDate: new Date().toISOString().substring(0, 10),
+    endDate: '',
+    status: 'active' as 'active' | 'inactive',
+  };
+  const [contractForm, setContractForm] = useState(emptyContract);
+  const [editingContractId, setEditingContractId] = useState<number | null>(null);
 
   const loadDashboardData = async () => {
     setLoading(true);
     setError('');
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [invoicesRes, roomsRes, statsRes, pricesRes] = await Promise.all([
+      const [invoicesRes, roomsRes, statsRes, pricesRes, buildingsRes, contractsRes, usersRes] = await Promise.all([
         fetch(`${API}/api/invoices`, { headers }),
         fetch(`${API}/api/rooms`, { headers }),
         fetch(`${API}/api/dashboard/admin-stats`, { headers }),
         fetch(`${API}/api/invoices/utility-prices`, { headers }),
+        fetch(`${API}/api/buildings`, { headers }),
+        fetch(`${API}/contracts`, { headers }),
+        fetch(`${API}/api/users`, { headers }),
       ]);
 
       if (!invoicesRes.ok || !roomsRes.ok || !statsRes.ok) {
@@ -155,6 +200,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
       setInvoices(invData);
       setRooms(rmData);
       setStats(stData);
+
+      if (buildingsRes.ok) setBuildings(await buildingsRes.json());
+      if (contractsRes.ok) setContracts(await contractsRes.json());
+      if (usersRes.ok) setUsers(await usersRes.json());
 
       if (pricesRes.ok) {
         const prData = await pricesRes.json();
@@ -171,6 +220,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
   useEffect(() => {
     loadDashboardData();
   }, [token]);
+
+  const getRoomOccupancy = (room: Room) => room.current_occupancy ?? room.students?.length ?? 0;
+  const getRoomCapacity = (room: Room) => room.capacity ?? 0;
+  const isRoomFull = (room: Room) => {
+    const occupancy = getRoomOccupancy(room);
+    const capacity = getRoomCapacity(room);
+    return capacity > 0 && occupancy >= capacity;
+  };
+
+  const roomsByBuilding = buildings.map((building) => ({
+    ...building,
+    rooms: rooms.filter((room) => room.building_id === building.id),
+  }));
+
+  const contractStudents = users.filter((u) => u.role === 'student');
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   // Xem danh sách sinh viên đang ở trong một phòng cụ thể
   const handleViewRoomStudents = async (room: Room) => {
@@ -368,10 +442,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
     setSuccess('');
     try {
       const body = {
-        room_name: roomForm.room_name.trim(),
+        building_id: roomForm.building_id ? parseInt(roomForm.building_id, 10) : undefined,
         type: roomForm.type.trim() || 'Thường',
         capacity: parseInt(roomForm.capacity, 10),
         fixed_rent: parseFloat(roomForm.fixed_rent),
+        room_name: roomForm.room_name.trim(),
       };
       const url = editingRoomId ? `${API}/api/rooms/${editingRoomId}` : `${API}/api/rooms`;
       const method = editingRoomId ? 'PUT' : 'POST';
@@ -411,19 +486,120 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
     setEditingRoomId(room.id);
     setRoomForm({
       room_name: room.room_name || '',
+      building_id: room.building_id ? String(room.building_id) : '',
       type: room.type || 'Thường',
       capacity: String(room.capacity ?? 4),
       fixed_rent: String(room.fixed_rent ?? room.price ?? 1500000),
     });
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '—';
+  const handleSaveBuilding = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
     try {
-      const d = new Date(dateStr);
-      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-    } catch (e) {
-      return dateStr;
+      const body = {
+        name: buildingForm.name.trim(),
+        description: buildingForm.description.trim() || null,
+      };
+      const url = editingBuildingId ? `${API}/api/buildings/${editingBuildingId}` : `${API}/api/buildings`;
+      const method = editingBuildingId ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi lưu tòa nhà');
+      setSuccess(editingBuildingId ? 'Cập nhật tòa nhà thành công!' : 'Thêm tòa nhà mới thành công!');
+      setBuildingForm(emptyBuilding);
+      setEditingBuildingId(null);
+      loadDashboardData();
+    } catch (err: any) {
+      setError(err.message || 'Lỗi lưu tòa nhà');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEditBuilding = (building: Building) => {
+    setEditingBuildingId(building.id);
+    setBuildingForm({
+      name: building.name || '',
+      description: building.description || '',
+    });
+  };
+
+  const handleDeleteBuilding = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tòa nhà này không?')) return;
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await fetch(`${API}/api/buildings/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi xóa tòa nhà');
+      setSuccess('Xóa tòa nhà thành công!');
+      loadDashboardData();
+    } catch (err: any) {
+      setError(err.message || 'Lỗi xóa tòa nhà');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveContract = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const payload = {
+        userId: parseInt(contractForm.userId, 10),
+        roomId: parseInt(contractForm.roomId, 10),
+        startDate: contractForm.startDate,
+        endDate: contractForm.endDate,
+        status: contractForm.status,
+      };
+      const url = editingContractId ? `${API}/contracts/${editingContractId}` : `${API}/contracts`;
+      const method = editingContractId ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi lưu hợp đồng');
+      setSuccess(editingContractId ? 'Cập nhật hợp đồng thành công!' : 'Tạo hợp đồng cư trú thành công!');
+      setContractForm(emptyContract);
+      setEditingContractId(null);
+      loadDashboardData();
+    } catch (err: any) {
+      setError(err.message || 'Lỗi lưu hợp đồng');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEditContract = (contract: Contract) => {
+    setEditingContractId(contract.id);
+    setContractForm({
+      userId: String(contract.userId),
+      roomId: String(contract.roomId),
+      startDate: contract.startDate ? String(contract.startDate).substring(0, 10) : '',
+      endDate: contract.endDate ? String(contract.endDate).substring(0, 10) : '',
+      status: contract.status,
+    });
+  };
+
+  const handleDeleteContract = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa hợp đồng này không?')) return;
+    setActionLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await fetch(`${API}/contracts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi xóa hợp đồng');
+      setSuccess('Xóa hợp đồng thành công!');
+      loadDashboardData();
+    } catch (err: any) {
+      setError(err.message || 'Lỗi xóa hợp đồng');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -447,6 +623,210 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
       <ArrowRepeat size={18} /> Làm mới dữ liệu
     </button>
   );
+
+  // ============ TRANG: QUẢN LÝ TÒA NHÀ ==========
+  if (section === 'buildings') {
+    return (
+      <div className="animate-fade-in">
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <p className="text-secondary mb-0">Quản lý danh mục tòa nhà và tổng quan số phòng theo từng khối.</p>
+          {refreshBtn}
+        </div>
+
+        {alerts}
+
+        <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
+          <div className="stat-card"><div className="stat-icon icon-invoices"><BuildingFill size={26} /></div><div className="stat-info"><span className="stat-label">Tòa nhà</span><span className="stat-value">{buildings.length}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-rooms"><DoorOpenFill size={26} /></div><div className="stat-info"><span className="stat-label">Tổng phòng</span><span className="stat-value">{rooms.length}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-revenue"><PeopleFill size={26} /></div><div className="stat-info"><span className="stat-label">Phòng còn chỗ</span><span className="stat-value">{rooms.filter((room) => !isRoomFull(room)).length}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-unpaid"><ExclamationTriangleFill size={26} /></div><div className="stat-info"><span className="stat-label">Phòng đầy</span><span className="stat-value">{rooms.filter((room) => isRoomFull(room)).length}</span></div></div>
+        </div>
+
+        <div className="glass-panel" style={{ marginBottom: '2rem', ...(editingBuildingId ? { border: '1px solid var(--primary)' } : {}) }}>
+          <h2 className="section-title">{editingBuildingId ? <><PencilSquare style={{ color: 'var(--primary)' }} /> Sửa Tòa Nhà #{editingBuildingId}</> : <><BuildingFill className="text-primary" /> Thêm Tòa Nhà Mới</>}</h2>
+          <form onSubmit={handleSaveBuilding}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 2fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="form-group mb-0">
+                <label className="form-label">Tên tòa nhà</label>
+                <input className="form-input" placeholder="VD: Tòa A" value={buildingForm.name} onChange={(e) => setBuildingForm({ ...buildingForm, name: e.target.value })} required />
+              </div>
+              <div className="form-group mb-0">
+                <label className="form-label">Mô tả</label>
+                <input className="form-input" placeholder="Khu nam / Khu nữ / Khu mới..." value={buildingForm.description} onChange={(e) => setBuildingForm({ ...buildingForm, description: e.target.value })} />
+              </div>
+            </div>
+            <div className="d-flex gap-2">
+              <button type="submit" className="btn btn-success" style={{ width: 'auto' }} disabled={actionLoading}>
+                <Save2Fill /> {editingBuildingId ? 'Lưu thay đổi' : 'Thêm tòa nhà'}
+              </button>
+              {editingBuildingId && <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setEditingBuildingId(null); setBuildingForm(emptyBuilding); }} disabled={actionLoading}>Hủy</button>}
+            </div>
+          </form>
+        </div>
+
+        <div className="glass-panel">
+          <h2 className="section-title"><BuildingFill className="text-primary" /> Danh sách tòa nhà</h2>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Tòa nhà</th>
+                  <th>Mô tả</th>
+                  <th>Số phòng</th>
+                  <th>Phòng đầy</th>
+                  <th>Phòng trống</th>
+                  <th style={{ textAlign: 'center' }}>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {buildings.length > 0 ? buildings.map((building) => {
+                  const buildingRooms = rooms.filter((room) => room.building_id === building.id);
+                  const fullRooms = buildingRooms.filter((room) => isRoomFull(room)).length;
+                  const freeRooms = buildingRooms.length - fullRooms;
+                  return (
+                    <tr key={building.id}>
+                      <td><strong>#{building.id}</strong></td>
+                      <td><strong>{building.name}</strong></td>
+                      <td>{building.description || '—'}</td>
+                      <td>{buildingRooms.length}</td>
+                      <td><span className="badge badge-unpaid">{fullRooms}</span></td>
+                      <td><span className="badge badge-paid">{freeRooms}</span></td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="actions-cell" style={{ justifyContent: 'center' }}>
+                          <button title="Sửa tòa nhà" className="btn-icon" onClick={() => startEditBuilding(building)} disabled={actionLoading}><PencilFill size={14} /></button>
+                          <button title="Xóa tòa nhà" className="btn-icon btn-icon-danger" onClick={() => handleDeleteBuilding(building.id)} disabled={actionLoading}><TrashFill size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }) : (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Chưa có tòa nhà nào.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ TRANG: HỢP ĐỒNG CƯ DÂN ==========
+  if (section === 'contracts') {
+    const activeContracts = contracts.filter((contract) => contract.status === 'active').length;
+    return (
+      <div className="animate-fade-in">
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <p className="text-secondary mb-0">Tra cứu và lập hợp đồng cư trú cho sinh viên. Hợp đồng đang hoạt động sẽ thể hiện thời hạn và trạng thái rõ ràng.</p>
+          {refreshBtn}
+        </div>
+
+        {alerts}
+
+        <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
+          <div className="stat-card"><div className="stat-icon icon-invoices"><FileEarmarkTextFill size={26} /></div><div className="stat-info"><span className="stat-label">Tổng hợp đồng</span><span className="stat-value">{contracts.length}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-revenue"><CheckCircleFill size={26} /></div><div className="stat-info"><span className="stat-label">Đang hoạt động</span><span className="stat-value">{activeContracts}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-unpaid"><HourglassSplit size={26} /></div><div className="stat-info"><span className="stat-label">Hết hạn / ngưng</span><span className="stat-value">{contracts.length - activeContracts}</span></div></div>
+          <div className="stat-card"><div className="stat-icon icon-rooms"><DoorOpenFill size={26} /></div><div className="stat-info"><span className="stat-label">Phòng có hợp đồng</span><span className="stat-value">{new Set(contracts.map((contract) => contract.roomId)).size}</span></div></div>
+        </div>
+
+        <div className="glass-panel" style={{ marginBottom: '2rem', ...(editingContractId ? { border: '1px solid var(--primary)' } : {}) }}>
+          <h2 className="section-title">{editingContractId ? <><PencilSquare style={{ color: 'var(--primary)' }} /> Sửa Hợp Đồng #{editingContractId}</> : <><FileEarmarkTextFill className="text-primary" /> Tạo Hợp Đồng Cư Trú</>}</h2>
+          <form onSubmit={handleSaveContract}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group mb-0">
+                <label className="form-label">Sinh viên</label>
+                <select className="form-input form-select" value={contractForm.userId} onChange={(e) => setContractForm({ ...contractForm, userId: e.target.value })} required>
+                  <option value="">-- Chọn sinh viên --</option>
+                  {contractStudents.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.full_name || student.username || `SV #${student.id}`} {student.room_status ? `(${student.room_status})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group mb-0">
+                <label className="form-label">Phòng</label>
+                <select className="form-input form-select" value={contractForm.roomId} onChange={(e) => setContractForm({ ...contractForm, roomId: e.target.value })} required>
+                  <option value="">-- Chọn phòng --</option>
+                  {rooms.map((room) => {
+                    const full = isRoomFull(room);
+                    return (
+                      <option key={room.id} value={room.id} disabled={full}>
+                        {room.room_name} {full ? '(Đã đầy)' : `(${getRoomOccupancy(room)}/${getRoomCapacity(room)})`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              <div className="form-group mb-0">
+                <label className="form-label">Trạng thái</label>
+                <select className="form-input form-select" value={contractForm.status} onChange={(e) => setContractForm({ ...contractForm, status: e.target.value as 'active' | 'inactive' })}>
+                  <option value="active">active</option>
+                  <option value="inactive">inactive</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="form-group mb-0">
+                <label className="form-label">Ngày bắt đầu</label>
+                <input type="date" className="form-input" value={contractForm.startDate} onChange={(e) => setContractForm({ ...contractForm, startDate: e.target.value })} required />
+              </div>
+              <div className="form-group mb-0">
+                <label className="form-label">Ngày hết hạn</label>
+                <input type="date" className="form-input" value={contractForm.endDate} onChange={(e) => setContractForm({ ...contractForm, endDate: e.target.value })} required />
+              </div>
+            </div>
+            <div className="d-flex gap-2">
+              <button type="submit" className="btn btn-success" style={{ width: 'auto' }} disabled={actionLoading}>
+                <Save2Fill /> {editingContractId ? 'Lưu thay đổi' : 'Tạo hợp đồng'}
+              </button>
+              {editingContractId && <button type="button" className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setEditingContractId(null); setContractForm(emptyContract); }} disabled={actionLoading}>Hủy</button>}
+            </div>
+          </form>
+        </div>
+
+        <div className="glass-panel">
+          <h2 className="section-title"><FileEarmarkTextFill className="text-primary" /> Danh sách hợp đồng</h2>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Mã</th>
+                  <th>Sinh viên</th>
+                  <th>Phòng</th>
+                  <th>Ngày bắt đầu</th>
+                  <th>Ngày hết hạn</th>
+                  <th>Trạng thái</th>
+                  <th style={{ textAlign: 'center' }}>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contracts.length > 0 ? contracts.map((contract) => (
+                  <tr key={contract.id}>
+                    <td><strong>#{contract.id}</strong></td>
+                    <td>{contract.user?.full_name || `SV #${contract.userId}`}</td>
+                    <td>{contract.room?.room_name || `Phòng #${contract.roomId}`}</td>
+                    <td>{formatDate(contract.startDate)}</td>
+                    <td>{formatDate(contract.endDate)}</td>
+                    <td><span className={`badge ${contract.status === 'active' ? 'badge-paid' : 'badge-unpaid'}`}>{contract.status === 'active' ? 'active' : 'inactive'}</span></td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="actions-cell" style={{ justifyContent: 'center' }}>
+                        <button title="Sửa hợp đồng" className="btn-icon" onClick={() => startEditContract(contract)} disabled={actionLoading}><PencilFill size={14} /></button>
+                        <button title="Xóa hợp đồng" className="btn-icon btn-icon-danger" onClick={() => handleDeleteContract(contract.id)} disabled={actionLoading}><TrashFill size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Chưa có hợp đồng nào.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ============ TRANG: TỔNG QUAN ============
   if (section === 'overview') {
@@ -862,6 +1242,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>{refreshBtn}</div>
       {alerts}
 
+      <div className="pk-room-legend">
+        <span><i className="pk-room-dot pk-room-dot-open" /> Còn chỗ</span>
+        <span><i className="pk-room-dot pk-room-dot-full" /> Đã đầy</span>
+        <span><i className="pk-room-dot" style={{ background: '#cbd5e1' }} /> Chưa gán tòa nhà</span>
+      </div>
+
+      <div className="pk-room-map">
+        {roomsByBuilding.map((building) => (
+          <div key={building.id} className="pk-building-card">
+            <h3>{building.name}</h3>
+            <p>{building.description || 'Chưa có mô tả'}</p>
+            <div className="pk-room-grid">
+              {(building.rooms || []).length > 0 ? building.rooms!.map((room) => {
+                const full = isRoomFull(room);
+                return (
+                  <button
+                    key={room.id}
+                    type="button"
+                    className={`pk-room-chip ${full ? 'pk-room-chip-full' : 'pk-room-chip-open'}`}
+                    onClick={() => handleViewRoomStudents(room)}
+                    title="Xem sinh viên trong phòng"
+                  >
+                    <strong>{room.room_name}</strong>
+                    {getRoomOccupancy(room)}/{getRoomCapacity(room)} SV
+                  </button>
+                );
+              }) : (
+                <div className="pk-room-chip pk-room-chip-muted">Chưa có phòng nào</div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* MODAL XEM SINH VIÊN ĐANG Ở TRONG PHÒNG */}
       {viewingRoomStudents && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,23,42,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
@@ -933,7 +1347,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
           {editingRoomId ? <><PencilSquare style={{ color: 'var(--primary)' }} /> Sửa Phòng #{editingRoomId}</> : <><DoorOpenFill className="text-primary" /> Thêm Phòng Mới</>}
         </h2>
         <form onSubmit={handleSaveRoom}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1.5fr', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Tòa nhà</label>
+              <select className="form-input form-select" value={roomForm.building_id} onChange={(e) => setRoomForm({ ...roomForm, building_id: e.target.value })} required>
+                <option value="">-- Chọn tòa nhà --</option>
+                {buildings.map((building) => (
+                  <option key={building.id} value={building.id}>{building.name}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Tên phòng</label>
               <input className="form-input" placeholder="VD: Phòng C101" value={roomForm.room_name} onChange={(e) => setRoomForm({ ...roomForm, room_name: e.target.value })} required />
@@ -969,6 +1392,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
             <thead>
               <tr>
                 <th>Mã</th>
+                <th>Tòa nhà</th>
                 <th>Tên Phòng</th>
                 <th>Loại Phòng</th>
                 <th>Sức Chứa</th>
@@ -983,9 +1407,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
                   const occ = room.current_occupancy ?? (room.students?.length || 0);
                   const cap = room.capacity ?? 0;
                   const full = cap > 0 && occ >= cap;
+                  const building = buildings.find((item) => item.id === room.building_id);
                   return (
                     <tr key={room.id}>
                       <td><strong>#{room.id}</strong></td>
+                      <td>{building?.name || '—'}</td>
                       <td className="d-flex align-items-center gap-2"><HouseDoorFill className="text-primary" /> {room.room_name}</td>
                       <td>{room.type || 'Thường'}</td>
                       <td>{cap} người</td>
@@ -1011,7 +1437,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Chưa có phòng nào trong hệ thống.</td>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Chưa có phòng nào trong hệ thống.</td>
                 </tr>
               )}
             </tbody>

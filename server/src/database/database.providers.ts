@@ -53,6 +53,8 @@ export const databaseProviders = [
         const userCols = [
           'cccd VARCHAR(50) NULL',
           'gender VARCHAR(20) NULL',
+          // THÊM DÒNG DƯỚI ĐÂY ĐỂ ĐỒNG BỘ CỘT CHO MYSQL
+          "room_status ENUM('none', 'pending', 'approved', 'rejected') NOT NULL DEFAULT 'none'",
         ];
         for (const col of userCols) {
           const colName = col.split(' ')[0];

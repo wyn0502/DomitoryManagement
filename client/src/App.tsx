@@ -10,7 +10,7 @@ import RoomRegistration from './components/RoomRegistration';
 import StudentsAdmin from './components/StudentsAdmin';
 import {
   HouseDoorFill, PersonVcardFill, CreditCard2FrontFill, BoxArrowRight,
-  Grid1x2Fill, ReceiptCutoff, DoorOpenFill, ArrowRepeat, PeopleFill,
+  Grid1x2Fill, ReceiptCutoff, DoorOpenFill, ArrowRepeat, PeopleFill, BuildingFill, FileEarmarkTextFill,
 } from 'react-bootstrap-icons';
 
 interface User {
@@ -33,6 +33,8 @@ interface MenuItem {
 
 const ADMIN_MENU: MenuItem[] = [
   { key: 'overview', path: '/overview', label: 'Tổng quan', icon: <Grid1x2Fill size={18} /> },
+  { key: 'buildings', path: '/buildings', label: 'Tòa nhà', icon: <BuildingFill size={18} /> },
+  { key: 'contracts', path: '/contracts', label: 'Hợp đồng', icon: <FileEarmarkTextFill size={18} /> },
   { key: 'students', path: '/students', label: 'Sinh viên', icon: <PeopleFill size={18} /> },
   { key: 'invoices', path: '/invoices', label: 'Quản lý hóa đơn', icon: <ReceiptCutoff size={18} /> },
   { key: 'rooms', path: '/rooms', label: 'Phòng ở', icon: <DoorOpenFill size={18} /> },
@@ -47,6 +49,8 @@ const STUDENT_MENU: MenuItem[] = [
 
 const PAGE_TITLES: Record<string, string> = {
   '/overview': 'Tổng quan hệ thống',
+  '/buildings': 'Quản lý Tòa nhà',
+  '/contracts': 'Quản lý Hợp đồng cư dân',
   '/students': 'Quản lý Sinh viên & Duyệt phòng',
   '/invoices': 'Quản lý Hóa đơn & Chỉ số điện nước',
   '/rooms': 'Danh sách Phòng ở',
@@ -200,6 +204,8 @@ const App: React.FC = () => {
             {isAdmin ? (
               <>
                 <Route path="/overview" element={<AdminDashboard token={token} section="overview" />} />
+                <Route path="/buildings" element={<AdminDashboard token={token} section="buildings" />} />
+                <Route path="/contracts" element={<AdminDashboard token={token} section="contracts" />} />
                 <Route path="/students" element={<StudentsAdmin token={token} />} />
                 <Route path="/invoices" element={<AdminDashboard token={token} section="invoices" />} />
                 <Route path="/rooms" element={<AdminDashboard token={token} section="rooms" />} />
