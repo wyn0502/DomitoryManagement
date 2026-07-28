@@ -4,6 +4,7 @@ import {
   FileText, Search, BellFill, PeopleFill, CalendarEvent, CaretRightFill,
   DoorOpenFill, CashCoin, PersonVcardFill, HouseDoorFill,
 } from 'react-bootstrap-icons';
+import RoomAssetsCard from './RoomAssetsCard';
 
 interface User {
   id: number;
@@ -277,6 +278,13 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ token, user, setActiveTab
               </div>
             )}
           </Card>
+        </Col>
+      </Row>
+
+      {/* Hàng 2: Thiết bị trong phòng (SV3 - Long) */}
+      <Row className="g-4 mt-1">
+        <Col lg={12}>
+          <RoomAssetsCard token={token} roomId={user.room_status === 'approved' ? user.room_id : null} />
         </Col>
       </Row>
     </div>

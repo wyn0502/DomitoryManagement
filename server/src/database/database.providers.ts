@@ -7,6 +7,10 @@ import { User } from '../auth/entities/user.entity';
 import { Room } from '../rooms/entities/room.entity';
 import { Invoice } from '../invoices/entities/invoice.entity';
 import { UtilityMeter } from '../invoices/entities/utility-meter.entity';
+import { Asset } from '../assets/entities/asset.entity';
+import { RoomAsset } from '../assets/entities/room-asset.entity';
+import { Ticket } from '../tickets/entities/ticket.entity';
+import { Announcement } from '../announcements/entities/announcement.entity';
 
 export const databaseProviders = [
   {
@@ -39,7 +43,7 @@ export const databaseProviders = [
         username: process.env.DB_USERNAME || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_DATABASE || 'quan_ly_ktx',
-        entities: [User, Room, Invoice, UtilityMeter],
+        entities: [User, Room, Invoice, UtilityMeter, Asset, RoomAsset, Ticket, Announcement],
         synchronize: process.env.DB_SYNCHRONIZE === 'true', // Tắt đồng bộ tự động nếu đã import file SQL
         ssl: sslConfig,
       });
@@ -114,6 +118,83 @@ export const databaseProviders = [
           }
         } catch (e: any) {
           console.log('[DB Migration Notice announcements]:', e.message);
+        }
+
+        // Tạo bảng assets nếu chưa có (SV3 - Long)
+        try {
+          await ds.query(`
+            CREATE TABLE IF NOT EXISTS assets (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(100) NOT NULL UNIQUE,
+              description VARCHAR(255) NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `);
+          const assetCount: any[] = await ds.query('SELECT COUNT(*) as c FROM assets');
+          if (assetCount && assetCount[0] && parseInt(assetCount[0].c, 10) === 0) {
+            await ds.query(`
+              INSERT INTO assets (name, description) VALUES
+              ('Giường tầng sắt', 'Giường sắt 2 tầng tiêu chuẩn'),
+              ('Điều hòa 12000 BTU', 'Điều hòa Daikin làm mát phòng'),
+              ('Quạt trần Điện Cơ', 'Quạt trần 3 cánh'),
+              ('Tủ lạnh mini 90L', 'Tủ lạnh trữ nước uống và hoa quả');
+            `);
+            console.log('[DB Migration] Seeded default assets');
+          }
+        } catch (e: any) {
+          console.log('[DB Migration Notice assets]:', e.message);
+        }
+
+        // Tạo bảng room_assets nếu chưa có (SV3 - Long)
+        try {
+          await ds.query(`
+            CREATE TABLE IF NOT EXISTS room_assets (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              room_id INT NOT NULL,
+              asset_id INT NOT NULL,
+              quantity INT NOT NULL DEFAULT 1,
+              status ENUM('new', 'used', 'broken') NOT NULL DEFAULT 'new',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              UNIQUE KEY idx_room_asset (room_id, asset_id),
+              FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+              FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `);
+        } catch (e: any) {
+          console.log('[DB Migration Notice room_assets]:', e.message);
+        }
+
+        // Tạo bảng tickets nếu chưa có (SV3 - Long)
+        try {
+          await ds.query(`
+            CREATE TABLE IF NOT EXISTS tickets (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              room_id INT NOT NULL,
+              user_id INT NOT NULL,
+              title VARCHAR(150) NOT NULL,
+              description TEXT NOT NULL,
+              urgency ENUM('low', 'medium', 'high') NOT NULL DEFAULT 'medium',
+              status ENUM('pending', 'processing', 'completed') NOT NULL DEFAULT 'pending',
+              image_url VARCHAR(255) NULL,
+              admin_note TEXT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `);
+          // Thêm cột admin_note nếu DB cũ chưa có
+          try {
+            await ds.query('ALTER TABLE tickets ADD COLUMN admin_note TEXT NULL');
+          } catch (e: any) {
+            if (!e.message.includes('Duplicate column')) {
+              console.log('[DB Migration Notice tickets.admin_note]:', e.message);
+            }
+          }
+        } catch (e: any) {
+          console.log('[DB Migration Notice tickets]:', e.message);
         }
       } catch (err: any) {
         console.warn('[DB Migration] Notice:', err.message);

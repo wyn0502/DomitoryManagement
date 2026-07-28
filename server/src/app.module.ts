@@ -10,6 +10,9 @@ import { RoomsModule } from './rooms/rooms.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { UsersModule } from './users/users.module';
+import { AssetsModule } from './assets/assets.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [
@@ -34,6 +37,9 @@ import { UsersModule } from './users/users.module';
     InvoicesModule,
     DashboardModule,
     UsersModule,
+    AssetsModule,
+    TicketsModule,
+    AnnouncementsModule,
   ],
 })
 export class AppModule {}

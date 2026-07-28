@@ -8,9 +8,14 @@ import DashboardHome from './components/DashboardHome';
 import Profile from './components/Profile';
 import RoomRegistration from './components/RoomRegistration';
 import StudentsAdmin from './components/StudentsAdmin';
+import AssetsAdmin from './components/AssetsAdmin';
+import TicketsAdmin from './components/TicketsAdmin';
+import TicketsStudent from './components/TicketsStudent';
+import AnnouncementsAdmin from './components/AnnouncementsAdmin';
 import {
   HouseDoorFill, PersonVcardFill, CreditCard2FrontFill, BoxArrowRight,
   Grid1x2Fill, ReceiptCutoff, DoorOpenFill, ArrowRepeat, PeopleFill,
+  Tools, ChatLeftTextFill, MegaphoneFill,
 } from 'react-bootstrap-icons';
 
 interface User {
@@ -36,6 +41,9 @@ const ADMIN_MENU: MenuItem[] = [
   { key: 'students', path: '/students', label: 'Sinh viên', icon: <PeopleFill size={18} /> },
   { key: 'invoices', path: '/invoices', label: 'Quản lý hóa đơn', icon: <ReceiptCutoff size={18} /> },
   { key: 'rooms', path: '/rooms', label: 'Phòng ở', icon: <DoorOpenFill size={18} /> },
+  { key: 'assets', path: '/assets', label: 'Trang thiết bị', icon: <Tools size={18} /> },
+  { key: 'tickets', path: '/tickets', label: 'Báo cáo sự cố', icon: <ChatLeftTextFill size={18} /> },
+  { key: 'announcements', path: '/announcements', label: 'Bảng tin thông báo', icon: <MegaphoneFill size={18} /> },
 ];
 
 const STUDENT_MENU: MenuItem[] = [
@@ -43,6 +51,7 @@ const STUDENT_MENU: MenuItem[] = [
   { key: 'profile', path: '/profile', label: 'Thông tin cá nhân', icon: <PersonVcardFill size={18} /> },
   { key: 'register-room', path: '/register-room', label: 'Đăng ký phòng ở', icon: <DoorOpenFill size={18} /> },
   { key: 'billing', path: '/billing', label: 'Hóa đơn & Thanh toán', icon: <CreditCard2FrontFill size={18} /> },
+  { key: 'tickets', path: '/tickets', label: 'Báo cáo sự cố', icon: <ChatLeftTextFill size={18} /> },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -50,6 +59,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/students': 'Quản lý Sinh viên & Duyệt phòng',
   '/invoices': 'Quản lý Hóa đơn & Chỉ số điện nước',
   '/rooms': 'Danh sách Phòng ở',
+  '/assets': 'Quản lý Trang thiết bị',
+  '/tickets': 'Quản lý Báo cáo sự cố',
+  '/announcements': 'Bảng tin & Thông báo',
   '/home': 'Trang chủ / Tin tức',
   '/profile': 'Thông tin cá nhân',
   '/register-room': 'Đăng ký phòng ở Ký túc xá',
@@ -203,6 +215,9 @@ const App: React.FC = () => {
                 <Route path="/students" element={<StudentsAdmin token={token} />} />
                 <Route path="/invoices" element={<AdminDashboard token={token} section="invoices" />} />
                 <Route path="/rooms" element={<AdminDashboard token={token} section="rooms" />} />
+                <Route path="/assets" element={<AssetsAdmin token={token} />} />
+                <Route path="/tickets" element={<TicketsAdmin token={token} />} />
+                <Route path="/announcements" element={<AnnouncementsAdmin token={token} />} />
                 <Route path="*" element={<Navigate to="/overview" replace />} />
               </>
             ) : (
@@ -211,6 +226,7 @@ const App: React.FC = () => {
                 <Route path="/profile" element={<Profile token={token} />} />
                 <Route path="/register-room" element={<RoomRegistration token={token} user={user} onRoomRequested={handleRoomRequested} />} />
                 <Route path="/billing" element={<StudentBilling token={token} user={user} />} />
+                <Route path="/tickets" element={<TicketsStudent token={token} user={user} />} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </>
             )}
