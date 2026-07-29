@@ -963,7 +963,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
       </div>
 
       <div className="glass-panel">
-        <h2 className="section-title"><DoorOpenFill className="text-primary" /> Danh Sách Phòng Ký Túc Xá ({rooms.length})</h2>
+        <h2 className="section-title"><DoorOpenFill className="text-primary" /> Danh Sách Phòng Ký Túc Xá</h2>
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -986,7 +986,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
                   return (
                     <tr key={room.id}>
                       <td><strong>#{room.id}</strong></td>
-                      <td className="d-flex align-items-center gap-2"><HouseDoorFill className="text-primary" /> {room.room_name}</td>
+                      <td><HouseDoorFill className="text-primary" style={{ marginRight: '6px' }} /> {room.room_name}</td>
                       <td>{room.type || 'Thường'}</td>
                       <td>{cap} người</td>
                       <td><span className={`badge ${full ? 'badge-unpaid' : 'badge-paid'}`}>{occ}/{cap} {full ? 'Đầy' : 'Còn chỗ'}</span></td>
