@@ -5,7 +5,7 @@
   🎓 Môn học: Xây Dựng Và Phát Triển Web Nâng Cao<br>
   🏫 Trường: Đại Học Phenikaa – Khoa Công Nghệ Thông Tin<br>
   👩‍🏫 Giảng viên hướng dẫn: TS. Nguyễn Lệ Thu<br>
-  📅 Học kỳ III Năm học 2024-2025
+  📅 Học kỳ III Năm học 2025-2026
 </p>
 
 ---
@@ -249,9 +249,9 @@ Các kịch bản kiểm thử chính:
 
 | Tên thành viên | Mã SV | Vai trò | Công việc phụ trách | % Đóng góp |
 |---|---|---|---|:---:|
-| 👩‍💻 **Trần Thị Quỳnh** | `24104502` | Trưởng nhóm | Core Auth, Phân quyền RolesGuard, MySQL Cloud SSL, Tích hợp cổng thanh toán VietQR PayOS, Webhook HMAC-SHA256, UI Login & Billing, Unit Testing. | **35%** |
-| 👨‍💻 **Lê Văn Đông** | `24107720` | Thành viên | API CRUD Tòa nhà & Phòng ở, Sơ đồ phòng ở, Quản lý xếp chỗ sinh viên & Hợp đồng cư trú KTX. | **33%** |
-| 👨‍💻 **Nguyễn Văn Long** | `24107665` | Thành viên | API CRUD Tài sản & Phân bổ thiết bị phòng ở, Hệ thống tiếp nhận xử lý sự cố Ticket System, Bảng tin thông báo hành chính. | **32%** |
+| 👩‍💻 **Lò Tuấn Quỳnh** | `24104502` | Trưởng nhóm | Core Auth, Phân quyền RolesGuard, MySQL Cloud SSL, Tích hợp cổng thanh toán VietQR PayOS, Webhook HMAC-SHA256, UI Login & Billing, Unit Testing. | **40%** |
+| 👨‍💻 **Đặng Chấn Đông** | `24107720` | Thành viên | API CRUD Tòa nhà & Phòng ở, Sơ đồ phòng ở, Quản lý xếp chỗ sinh viên & Hợp đồng cư trú KTX. | **30%** |
+| 👨‍💻 **Nguyễn Quang Long** | `24107665` | Thành viên | API CRUD Tài sản & Phân bổ thiết bị phòng ở, Hệ thống tiếp nhận xử lý sự cố Ticket System, Bảng tin thông báo hành chính. | **30%** |
 
 ---
 
