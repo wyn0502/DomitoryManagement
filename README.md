@@ -10,7 +10,6 @@
 ---
 
 
----
 
 ## 📑 Mục lục
 1. 📖 [Giới thiệu dự án](#1-gioi-thieu-du-an)
@@ -278,12 +277,6 @@ npm run test
 | 👩‍💻 **Lò Tuấn Quỳnh** | `24104502` | Trưởng nhóm | Core Auth, Phân quyền RolesGuard, MySQL Cloud SSL, Tích hợp cổng thanh toán VietQR PayOS, Webhook HMAC-SHA256, UI Login & Billing, Unit Testing. | **40%** |
 | 👨‍💻 **Đặng Chấn Đông** | `24107720` | Thành viên | API CRUD Tòa nhà & Phòng ở, Sơ đồ phòng ở, Quản lý xếp chỗ sinh viên & Hợp đồng cư trú KTX. | **30%** |
 | 👨‍💻 **Nguyễn Quang Long** | `24107665` | Thành viên | API CRUD Tài sản & Phân bổ thiết bị phòng ở, Hệ thống tiếp nhận xử lý sự cố Ticket System, Bảng tin thông báo hành chính. | **30%** |
-=======
-| Họ và tên | Mã SV | Lớp | Vai trò | Phụ trách chi tiết | % Đóng góp |
-|---|---|---|---|---|:---:|
-| 👨‍💻 **Lò Tuấn Quỳnh** | `24104502` | N01.TH2 | **Trưởng nhóm** | Core Auth (bcrypt, JWT), Phân quyền RolesGuard, MySQL Cloud SSL, Tích hợp cổng thanh toán VietQR PayOS, Webhook IPN HMAC-SHA256 đối soát tự động, UI Login & Billing, Viết Unit Tests cho Auth & Invoices. | **40%** |
-| 👨‍💻 **Đặng Chấn Đông** | `24107609` | N01.TH2 | **Thành viên** | API CRUD Tòa nhà & Phòng ở, Xây dựng sơ đồ phòng ở, Quản lý xếp chỗ sinh viên & Hợp đồng cư trú KTX, Xây dựng giao diện Quản lý Phòng ở. | **30%** |
-| 👨‍💻 **Nguyễn Quang Long** | `24108169` | N01.TH2 | **Thành viên** | API CRUD Tài sản KTX & Phân bổ thiết bị vào phòng ở, Xây dựng hệ thống báo cáo sự cố (Ticket System), Thiết kế Bảng tin thông báo hành chính thời gian thực. | **30%** |
 
 
 ---
