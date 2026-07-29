@@ -35,11 +35,6 @@ interface AssetsAdminProps {
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
-const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  new: { label: 'Mới', cls: 'badge-paid' },
-  used: { label: 'Đã sử dụng', cls: 'badge-unpaid' },
-  broken: { label: 'Hỏng', cls: 'badge' },
-};
 
 const AssetsAdmin: React.FC<AssetsAdminProps> = ({ token }) => {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -87,6 +82,7 @@ const AssetsAdmin: React.FC<AssetsAdminProps> = ({ token }) => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // ====== CRUD asset catalog ======

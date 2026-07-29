@@ -27,6 +27,7 @@ export const databaseProviders = [
           if (fs.existsSync(caPath)) {
             sslConfig = {
               ca: fs.readFileSync(caPath).toString(),
+              rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' ? true : false,
             };
           } else {
             console.warn(`[Database] WARNING: Không tìm thấy file cert SSL tại ${caPath}. Kết nối SSL không sử dụng file CA.`);
@@ -108,6 +109,44 @@ export const databaseProviders = [
               console.log(`[DB Migration Notice invoices.${colName}]:`, e.message);
             }
           }
+        }
+
+        // Tạo bảng buildings nếu chưa có
+        try {
+          await ds.query(`
+            CREATE TABLE IF NOT EXISTS buildings (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(255) NOT NULL UNIQUE,
+              description VARCHAR(255) NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `);
+        } catch (e: any) {
+          console.log('[DB Migration Notice buildings]:', e.message);
+        }
+
+        // Bổ sung cột building_id vào bảng rooms nếu chưa có
+        try {
+          await ds.query('ALTER TABLE rooms ADD COLUMN building_id INT NULL;');
+          console.log('[DB Migration] Added column rooms.building_id');
+        } catch (e: any) {
+          if (!e.message.includes('Duplicate column')) {
+            console.log('[DB Migration Notice rooms.building_id]:', e.message);
+          }
+        }
+
+        // Tự động dọn dẹp các chỉ số điện nước mồ côi (utility_meters đã bị xóa hết hóa đơn)
+        try {
+          await ds.query(`
+            DELETE FROM utility_meters 
+            WHERE id NOT IN (
+              SELECT utility_meter_id FROM invoices WHERE utility_meter_id IS NOT NULL
+            );
+          `);
+          console.log('[DB Migration] Cleaned up orphan utility meters');
+        } catch (e: any) {
+          console.log('[DB Migration Notice cleanup orphan meters]:', e.message);
         }
 
         // Tạo bảng thông báo (announcements) nếu chưa có & thêm dữ liệu mẫu

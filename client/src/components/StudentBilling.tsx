@@ -107,6 +107,7 @@ const StudentBilling: React.FC<StudentBillingProps> = ({ token, user }) => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handlePay = async (invoiceId: number) => {

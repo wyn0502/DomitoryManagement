@@ -50,6 +50,7 @@ const AnnouncementsAdmin: React.FC<AnnouncementsAdminProps> = ({ token }) => {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleSubmit = async (e: FormEvent) => {

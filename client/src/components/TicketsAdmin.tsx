@@ -85,6 +85,7 @@ const TicketsAdmin: React.FC<TicketsAdminProps> = ({ token }) => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const openEdit = (t: Ticket) => {

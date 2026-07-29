@@ -23,11 +23,19 @@ export class AuthService {
     }
 
     // Kiểm tra trùng lặp
+    const conditions: any[] = [{ username }, { email }];
+    if (mssv && mssv.trim()) conditions.push({ mssv: mssv.trim() });
+    if (registerDto.cccd && registerDto.cccd.trim()) conditions.push({ cccd: registerDto.cccd.trim() });
+
     const existingUser = await this.userRepository.findOne({
-      where: [{ username }, { email }],
+      where: conditions,
     });
     if (existingUser) {
-      throw new ConflictException('Tên đăng nhập hoặc email đã tồn tại');
+      if (existingUser.username === username) throw new ConflictException('Tên đăng nhập đã tồn tại');
+      if (existingUser.email === email) throw new ConflictException('Email đã tồn tại');
+      if (mssv && existingUser.mssv === mssv.trim()) throw new ConflictException('Mã số sinh viên (MSSV) đã được sử dụng');
+      if (registerDto.cccd && existingUser.cccd === registerDto.cccd.trim()) throw new ConflictException('Số CCCD đã được sử dụng');
+      throw new ConflictException('Thông tin tài khoản (Tên đăng nhập, Email, MSSV hoặc CCCD) đã tồn tại');
     }
 
     // Kiểm tra phòng ở đăng ký (chỉ áp dụng cho sinh viên có chọn phòng)

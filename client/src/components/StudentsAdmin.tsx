@@ -97,6 +97,7 @@ const StudentsAdmin: React.FC<StudentsAdminProps> = ({ token }) => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const act = async (url: string, method: string, okMsg: string, body?: any) => {

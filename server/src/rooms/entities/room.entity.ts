@@ -14,7 +14,7 @@ export class Room {
   @JoinColumn({ name: 'building_id' })
   building: Building;
 
-  @Column({ name: 'building_id' })
+  @Column({ name: 'building_id', nullable: true })
   building_id: number;
 
   @Column({ unique: true })

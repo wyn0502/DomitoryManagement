@@ -170,6 +170,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, section }) => {
 
   useEffect(() => {
     loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Xem danh sách sinh viên đang ở trong một phòng cụ thể

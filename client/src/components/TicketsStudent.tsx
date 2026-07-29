@@ -2,7 +2,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import {
   ArrowRepeat, ExclamationTriangleFill, CheckCircleFill, Tools, ChatLeftTextFill,
   SendFill, PlusCircleFill, HourglassSplit, ChatQuoteFill, Check2All,
-  ExclamationOctagonFill, HouseDoorFill, XCircleFill, ExclamationDiamondFill,
+  HouseDoorFill, XCircleFill, ExclamationDiamondFill,
 } from 'react-bootstrap-icons';
 
 interface UserLite {
@@ -91,6 +91,7 @@ const TicketsStudent: React.FC<TicketsStudentProps> = ({ token, user }) => {
   useEffect(() => {
     if (canSubmit) loadData();
     else setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const handleSubmit = async (e: FormEvent) => {

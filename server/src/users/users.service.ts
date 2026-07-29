@@ -57,11 +57,19 @@ export class UsersService {
     if (!username || !email) {
       throw new BadRequestException('Vui lòng nhập tên đăng nhập và email');
     }
+    const conditions: any[] = [{ username }, { email }];
+    if (mssv && mssv.trim()) conditions.push({ mssv: mssv.trim() });
+    if (cccd && cccd.trim()) conditions.push({ cccd: cccd.trim() });
+
     const existingUser = await this.userRepository.findOne({
-      where: [{ username }, { email }],
+      where: conditions,
     });
     if (existingUser) {
-      throw new ConflictException('Tên đăng nhập hoặc email đã tồn tại');
+      if (existingUser.username === username) throw new ConflictException('Tên đăng nhập đã tồn tại');
+      if (existingUser.email === email) throw new ConflictException('Email đã tồn tại');
+      if (mssv && existingUser.mssv === mssv.trim()) throw new ConflictException('Mã số sinh viên (MSSV) đã được đăng ký');
+      if (cccd && existingUser.cccd === cccd.trim()) throw new ConflictException('Số CCCD đã được đăng ký');
+      throw new ConflictException('Tên đăng nhập, email, MSSV hoặc CCCD đã tồn tại');
     }
 
     const bcrypt = require('bcrypt');
@@ -138,6 +146,21 @@ export class UsersService {
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
     const oldRoomId = user.room_id;
+
+    // Kiểm tra trùng lặp thông tin nếu có sửa mssv, email, cccd
+    const checkConds: any[] = [];
+    if (dto.email && dto.email.trim() !== user.email) checkConds.push({ email: dto.email.trim() });
+    if (dto.mssv && dto.mssv.trim() !== user.mssv) checkConds.push({ mssv: dto.mssv.trim() });
+    if (dto.cccd && dto.cccd.trim() !== user.cccd) checkConds.push({ cccd: dto.cccd.trim() });
+
+    if (checkConds.length > 0) {
+      const dup = await this.userRepository.findOne({ where: checkConds });
+      if (dup && dup.id !== userId) {
+        if (dto.email && dup.email === dto.email.trim()) throw new ConflictException('Email đã được sử dụng bởi tài khoản khác');
+        if (dto.mssv && dup.mssv === dto.mssv.trim()) throw new ConflictException('Mã số sinh viên (MSSV) đã thuộc về sinh viên khác');
+        if (dto.cccd && dup.cccd === dto.cccd.trim()) throw new ConflictException('Số CCCD đã thuộc về sinh viên khác');
+      }
+    }
 
     ['full_name', 'phone', 'class_name', 'hometown', 'mssv', 'email', 'cccd', 'gender'].forEach((f) => {
       if (dto[f] !== undefined) (user as any)[f] = dto[f];
