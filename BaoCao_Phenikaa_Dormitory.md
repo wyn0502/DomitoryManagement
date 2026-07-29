@@ -376,17 +376,37 @@ Hệ thống quản lý ký túc xá được phát triển bởi nhóm 3 thành
 
 ## CÂU 9: LUẬT, ĐẠO ĐỨC XÃ HỘI, ĐẠO ĐỨC NGHỀ NGHIỆP & AN NINH AN TOÀN HỆ THỐNG
 
-### 1. Khía cạnh Luật pháp và Đạo đức Nghề nghiệp
-* **Tuân thủ Bản quyền & Bảo mật thông tin:** Hệ thống thu thập thông tin cá nhân của sinh viên (Họ tên, SĐT, CCCD, Quê quán) nên nhóm cam kết tuân thủ Luật An ninh mạng và Nghị định bảo vệ dữ liệu cá nhân (GDPR/VNeID tương đương). Không chia sẻ dữ liệu sinh viên cho bên thứ ba.
-* **Đạo đức nghề nghiệp:** Không cài cắm mã độc hay các chức năng ẩn nhằm trục lợi tài chính. Mã nguồn mở và sử dụng các API Sandbox chính thức của PayOS để thử nghiệm giao dịch tài chính một cách minh bạch, an toàn tuyệt đối.
+### 1. Đánh giá về Luật pháp (Legal Compliance)
+Khi xây dựng và triển khai Hệ thống Quản lý Ký túc xá, nhóm phát triển tuân thủ nghiêm ngặt các quy định pháp luật hiện hành của Việt Nam:
+* **Luật An ninh mạng 2018 & Luật An toàn thông tin mạng 2015:** Dữ liệu cá nhân của cư sinh viên (Họ tên, Mã sinh viên, Số CCCD, Email, Số điện thoại, Quê quán, Lớp học) được thu thập và lưu trữ theo đúng quy định. Hệ thống cam kết không chia sẻ, mua bán hay rò rỉ dữ liệu cá nhân cho bất kỳ bên thứ ba nào.
+* **Nghị định 13/2023/NĐ-CP về Bảo vệ Dữ liệu Cá nhân (PDPD):** Dữ liệu thu thập chỉ phục vụ mục đích quản lý cư trú, phân phòng, xuất hóa đơn điện nước và tiếp nhận sự cố kỹ thuật trong ký túc xá. Sinh viên có quyền xem, chỉnh sửa thông tin cá nhân và kiểm tra chi tiết hóa đơn thanh toán của mình.
+* **Quyền Sở hữu trí tuệ & Mã nguồn mở:** Toàn bộ công nghệ được sử dụng trong dự án (NestJS, React, TypeORM, MySQL, Bootstrap Icons) đều dựa trên các thư viện mã nguồn mở có giấy phép hợp pháp (MIT / Apache 2.0). Cổng thanh toán VietQR sử dụng qua SDK PayOS chính thức.
 
-### 2. Các vấn đề An ninh an toàn đã được thiết lập
-Hệ thống đã triển khai các chốt chặn bảo mật đa lớp:
-* **Mã hóa dữ liệu nhạy cảm:** Mật khẩu sinh viên được băm bằng bcrypt, ngăn chặn nguy cơ lộ mật khẩu ngay cả khi cơ sở dữ liệu bị đánh cắp.
-* **Bảo mật truy cập API:** Sử dụng JWT token làm khóa xác thực cho mỗi Request gửi lên.
-* **RolesGuard:** Chốt chặn kiểm tra quyền hạn của User. Nếu sinh viên cố tình dùng Postman gọi API Admin (`POST /api/invoices/record-index`), hệ thống lập tức chặn lại bằng mã lỗi 403 Forbidden.
-* **Chữ ký số chống giả mạo thanh toán (Webhook Signature Verification):** Khi cổng thanh toán PayOS gọi về Webhook IPN, NestJS Backend bắt buộc phải tính toán lại chữ ký HMAC SHA256 dựa trên dữ liệu nhận được và khóa bí mật `PAYOS_CHECKSUM_KEY` để đối soát chéo. Việc này ngăn chặn triệt để tấn công giả lập gói tin giao dịch thành công.
-* **Ngăn chặn SQL Injection:** TypeORM sử dụng cơ chế parameterized queries (truy vấn tham số hóa) để cô lập dữ liệu đầu vào của người dùng, triệt tiêu khả năng chèn mã SQL phá hoại hệ thống.
+### 2. Khía cạnh Đạo đức Xã hội và Đạo đức Nghề nghiệp (Social & Professional Ethics)
+Dựa trên Bộ quy tắc Đạo đức Kỹ sư Phần mềm (ACM/IEEE Code of Ethics):
+* **Tính Công bằng & Minh bạch (Fairness & Transparency):** Thuật toán tính toán tiền điện nước tự động lấy tổng điện nước tiêu thụ trong tháng chia đều chính xác cho số lượng sinh viên thực tế đang ở trong phòng (`room_status = 'approved'`). Không xảy ra tình trạng thu thừa, thu khống hay mập mờ trong tính toán tài chính.
+* **Trách nhiệm Nghề nghiệp (Professional Responsibility):** Mã nguồn dự án hoàn toàn sạch, không cài cắm phần mềm độc hại (Malware), không chứa Backdoor, Spyware hay Telemetry theo dõi người dùng trái phép.
+* **An toàn Tài chính:** Không trực tiếp lưu trữ thông tin thẻ ngân hàng hay tài khoản cá nhân của sinh viên trên Server. Mọi giao dịch chuyển khoản đều sử dụng mã VietQR chuẩn Napas247 thông qua đối soát PayOS Sandbox minh bạch, an toàn.
+
+### 3. Kiểm tra & Đánh giá An ninh An toàn Hệ thống đã thiết lập (Security Audit & Protection Controls)
+Hệ thống đã được kiểm tra và thiết lập đầy đủ các chốt chặn bảo mật đa lớp chống lại các lỗ hổng phổ biến (OWASP Top 10):
+
+#### A. Bảo mật Dữ liệu & Mã hóa (Cryptography & Data Protection)
+* **Băm mật khẩu an toàn (Password Hashing):** Sử dụng thuật toán `bcrypt` với **Salt Round = 10** để mã hóa toàn bộ mật khẩu người dùng trước khi lưu vào CSDL. Ngay cả khi CSDL bị lộ, hacker cũng không thể đảo ngược ra mật khẩu gốc.
+* **Mã hóa kết nối Cơ sở dữ liệu (SSL/TLS Encryption):** Kết nối giữa Backend NestJS và Cơ sở dữ liệu Cloud MySQL (Aiven) được mã hóa bằng giao thức SSL/TLS (`DB_SSL=true`, `rejectUnauthorized: false`), chống lại nguy cơ nghe lén gói tin trên đường truyền (Eavesdropping).
+
+#### B. Xác thực & Phân quyền (Authentication & Authorization - RBAC)
+* **Xác thực vô trạng thái JWT (JSON Web Token):** Sử dụng Token JWT có thời hạn hết hạn (`expiresIn: 86400s`) và chữ ký bí mật (`JWT_SECRET`). Mọi Request truy cập API bảo mật đều phải đính kèm Header `Authorization: Bearer <token>`.
+* **Phân quyền chặt chẽ (Role-Based Access Control - RBAC):** Sử dụng `RolesGuard` và Decorator `@Roles('admin')`. Sinh viên thường cố tình gọi các API quản trị (như `POST /api/invoices/record-index`, `PUT /api/invoices/utility-prices`, `DELETE /api/users/:id`) sẽ lập tức bị chặn bằng mã lỗi **403 Forbidden**.
+* **Cô lập dữ liệu giữa các Sinh viên (Multi-Tenant Data Isolation):** Hàm truy vấn hóa đơn `findAll` & `findOne` được thiết lập điều kiện nghiêm ngặt: sinh viên chỉ xem được hóa đơn cá nhân của chính mình (`user_id = userId`) hoặc hóa đơn phòng trống (`user_id IS NULL AND room_id = roomId`), tuyệt đối không thể xem hóa đơn của sinh viên phòng khác hay roommate cùng phòng.
+
+#### C. Bảo vệ toàn vẹn giao dịch tài chính (Payment Security & HMAC Signature)
+* **Xác thực chữ ký số Webhook PayOS (HMAC-SHA256):** Khi nhận phản hồi thanh toán qua Webhook IPN từ PayOS, Backend sử dụng thuật toán HMAC-SHA256 kết hợp với `PAYOS_CHECKSUM_KEY` để kiểm tra tính toàn vẹn của gói tin. Việc này triệt tiêu hoàn toàn nguy cơ **Webhook Spoofing** (kẻ xấu giả mạo tín hiệu gửi về Server để gian lận thanh toán).
+
+#### D. Ngăn chặn các lỗ hổng ứng dụng web (OWASP Defense)
+* **Phòng chống SQL Injection:** Sử dụng TypeORM với cơ chế Truy vấn tham số hóa (Parameterized Queries / Prepared Statements), loại bỏ hoàn toàn khả năng chèn câu lệnh SQL độc hại qua các Input Form.
+* **Phòng chống XSS (Cross-Site Scripting):** React JSX tự động mã hóa (escape) tất cả biến đầu ra trước khi render lên DOM.
+* **Ràng buộc duy nhất dữ liệu (Data Integrity Constraints):** Database và Service layer thực hiện kiểm tra trùng lặp nghiêm ngặt đối với `username`, `email`, `mssv` và `cccd`, ngăn ngừa dữ liệu rác và giả mạo danh tính.
 
 ---
 
