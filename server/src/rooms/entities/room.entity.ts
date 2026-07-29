@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 import { Invoice } from '../../invoices/entities/invoice.entity';
 import { UtilityMeter } from '../../invoices/entities/utility-meter.entity';
@@ -11,9 +11,10 @@ export class Room {
   id: number;
 
   @ManyToOne(() => Building, (building) => building.rooms)
+  @JoinColumn({ name: 'building_id' })
   building: Building;
 
-  @Column()
+  @Column({ name: 'building_id' })
   building_id: number;
 
   @Column({ unique: true })
