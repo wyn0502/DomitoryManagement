@@ -608,23 +608,34 @@ body {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   border-radius: 50px;
   text-transform: uppercase;
+  min-width: 80px;
+  justify-content: center;
+  background-color: #6b7280;
+  color: #ffffff;
+  border: 1px solid #6b7280;
 }
 
 .badge-paid {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: #22c55e;
+  color: #ffffff;
+  border: 1px solid #22c55e;
 }
 
 .badge-unpaid {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background-color: #ef4444;
+  color: #ffffff;
+  border: 1px solid #ef4444;
+}
+
+.badge-warning {
+  background-color: #f59e0b;
+  color: #ffffff;
+  border: 1px solid #f59e0b;
 }
 
 /* Action buttons in tables */

@@ -48,8 +48,8 @@ const STATUS_META: Record<string, { label: string; cls: string; icon: React.Reac
 
 const URGENCY_META: Record<string, { label: string; cls: string }> = {
   low: { label: 'Thấp', cls: 'badge-paid' },
-  medium: { label: 'Trung bình', cls: 'badge-unpaid' },
-  high: { label: 'Khẩn cấp', cls: 'badge' },
+  medium: { label: 'Trung bình', cls: 'badge-warning' },
+  high: { label: 'Khẩn cấp', cls: 'badge-unpaid' },
 };
 
 const URGENCY_PROMPT: Record<string, string> = {
