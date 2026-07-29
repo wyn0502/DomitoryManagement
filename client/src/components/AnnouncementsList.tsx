@@ -87,9 +87,6 @@ const AnnouncementsList: React.FC<AnnouncementsListProps> = ({ token }) => {
 
   const categories = [
     { key: 'all', label: 'Tất cả', count: announcements.length },
-    { key: 'management', label: 'Phòng Quản lý KTX', count: announcements.filter((a) => getDepartment(a.title, a.content) === 'Phòng Quản lý KTX').length },
-    { key: 'facilities', label: 'Ban Cơ sở vật chất', count: announcements.filter((a) => getDepartment(a.title, a.content) === 'Ban Cơ sở vật chất').length },
-    { key: 'finance', label: 'Phòng Tài chính', count: announcements.filter((a) => getDepartment(a.title, a.content) === 'Phòng Tài chính').length },
   ];
 
   return (
